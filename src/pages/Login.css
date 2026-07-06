@@ -1,0 +1,353 @@
+/* ── Layout raíz ─────────────────────────────────────────────────────────── */
+.login-root {
+  display: flex;
+  min-height: 100vh;
+  transition: opacity 0.4s ease;
+}
+.login-root--success {
+  opacity: 0;
+}
+
+/* ── Panel izquierdo ─────────────────────────────────────────────────────── */
+.login-panel-left {
+  position: relative;
+  width: 42%;
+  background: #0e1c17;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 48px 44px;
+  overflow: hidden;
+}
+
+/* Orbes de luz ambiental */
+.login-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  animation: orb-breathe 7s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+.login-orb--1 {
+  width: 340px;
+  height: 340px;
+  background: radial-gradient(circle, rgba(74, 210, 149, 0.22) 0%, transparent 70%);
+  top: -60px;
+  left: -80px;
+  animation-delay: 0s;
+}
+.login-orb--2 {
+  width: 280px;
+  height: 280px;
+  background: radial-gradient(circle, rgba(74, 160, 210, 0.16) 0%, transparent 70%);
+  bottom: 40px;
+  right: -60px;
+  animation-delay: 3.5s;
+}
+
+@keyframes orb-breathe {
+  from { transform: scale(1) translate(0, 0); }
+  to   { transform: scale(1.15) translate(12px, 18px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-orb { animation: none; }
+}
+
+/* Marca */
+.login-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+  z-index: 1;
+}
+.login-brand-mark {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(74, 210, 149, 0.15);
+  border: 1px solid rgba(74, 210, 149, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #4ad295;
+}
+.login-brand-name {
+  color: #f0ede8;
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+  line-height: 1.2;
+}
+.login-brand-tagline {
+  color: rgba(240, 237, 232, 0.45);
+  font-size: 0.75rem;
+  margin: 0;
+}
+
+/* Cita al fondo */
+.login-quote {
+  color: rgba(240, 237, 232, 0.5);
+  font-size: 0.85rem;
+  line-height: 1.6;
+  margin: 0;
+  border-left: 2px solid rgba(74, 210, 149, 0.3);
+  padding-left: 16px;
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Panel derecho ───────────────────────────────────────────────────────── */
+.login-panel-right {
+  flex: 1;
+  background: #fafaf8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+}
+
+.login-form-wrap {
+  width: 100%;
+  max-width: 380px;
+}
+
+/* ── Toggle login/registro ───────────────────────────────────────────────── */
+.login-mode-toggle {
+  display: flex;
+  background: #eeecea;
+  border-radius: 10px;
+  padding: 3px;
+  margin-bottom: 28px;
+  gap: 2px;
+}
+.login-mode-btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #7a8882;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s, box-shadow 0.18s;
+}
+.login-mode-btn:hover {
+  color: #2b3a34;
+}
+.login-mode-btn--active {
+  background: #ffffff;
+  color: #0e1c17;
+  font-weight: 600;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* ── Encabezado ──────────────────────────────────────────────────────────── */
+.login-heading {
+  font-size: 1.55rem;
+  font-weight: 700;
+  color: #0e1c17;
+  margin: 0 0 6px;
+  letter-spacing: -0.3px;
+  line-height: 1.2;
+}
+.login-subheading {
+  font-size: 0.88rem;
+  color: #7a8882;
+  margin: 0 0 28px;
+}
+
+/* ── Campo de formulario ─────────────────────────────────────────────────── */
+.login-field {
+  margin-bottom: 16px;
+}
+.login-label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #2b3a34;
+  margin-bottom: 6px;
+  letter-spacing: 0.2px;
+}
+.login-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.login-input-icon {
+  position: absolute;
+  left: 13px;
+  color: #a0ada9;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+.login-input {
+  width: 100%;
+  padding: 11px 40px 11px 38px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  color: #0e1c17;
+  background: #ffffff;
+  border: 1.5px solid #dde4e0;
+  border-radius: 10px;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.login-input::placeholder {
+  color: #b8c2be;
+}
+.login-input:focus {
+  border-color: #2daa72;
+  box-shadow: 0 0 0 3px rgba(45, 170, 114, 0.12);
+}
+.login-field--error .login-input {
+  border-color: #d04848;
+  box-shadow: none;
+}
+.login-field--error .login-input:focus {
+  box-shadow: 0 0 0 3px rgba(208, 72, 72, 0.1);
+}
+
+/* Botón ver/ocultar contraseña */
+.login-eye-btn {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  color: #a0ada9;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  border-radius: 5px;
+  transition: color 0.15s;
+}
+.login-eye-btn:hover {
+  color: #2b3a34;
+  background: none;
+}
+.login-eye-btn:focus-visible {
+  outline: 2px solid #2daa72;
+  outline-offset: 2px;
+}
+
+/* Error por campo */
+.login-field-error {
+  font-size: 0.78rem;
+  color: #c04040;
+  margin: 5px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* Error global */
+.login-global-error {
+  background: #fff5f5;
+  border: 1.5px solid #f5c2c2;
+  border-radius: 9px;
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  color: #b83232;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ── Botón submit ────────────────────────────────────────────────────────── */
+.login-submit {
+  width: 100%;
+  padding: 13px;
+  background: #0e1c17;
+  color: #f0ede8;
+  border: none;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background 0.15s, transform 0.1s;
+  letter-spacing: 0.2px;
+  min-height: 46px;
+}
+.login-submit:hover:not(:disabled) {
+  background: #1c3328;
+}
+.login-submit:active:not(:disabled) {
+  transform: scale(0.985);
+}
+.login-submit:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Spinner del botón */
+.login-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(240, 237, 232, 0.3);
+  border-top-color: #f0ede8;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Link cambio de modo ─────────────────────────────────────────────────── */
+.login-switch {
+  text-align: center;
+  font-size: 0.84rem;
+  color: #7a8882;
+  margin: 20px 0 0;
+}
+.login-switch-btn {
+  background: none;
+  border: none;
+  color: #1e7a4e;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.login-switch-btn:hover {
+  color: #0e5435;
+  background: none;
+}
+
+/* ── Responsive: móvil ───────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .login-root {
+    flex-direction: column;
+  }
+  .login-panel-left {
+    width: 100%;
+    min-height: 130px;
+    padding: 28px 24px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 16px;
+  }
+  .login-quote {
+    display: none;
+  }
+  .login-panel-right {
+    padding: 32px 20px 40px;
+    align-items: flex-start;
+  }
+}

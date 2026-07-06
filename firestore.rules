@@ -1,0 +1,113 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function isBootstrapAdminEmail() {
+      return signedIn() && request.auth.token.email == 'cristianfutu2020@gmail.com';
+    }
+
+    match /users/{userId} {
+      allow read: if signedIn() && (request.auth.uid == userId || isAdmin());
+      allow create: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.role in ['admin', 'employee']
+        && (request.resource.data.role == 'employee' || isBootstrapAdminEmail());
+      allow update: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'bio', 'updatedAt']);
+      allow delete: if false;
+    }
+
+    match /employees/{employeeId} {
+      allow read: if isAdmin()
+        || (signedIn() && resource.data.email == request.auth.token.email);
+      allow create, update: if isAdmin()
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 100
+        && request.resource.data.email is string
+        && request.resource.data.email.size() <= 160
+        && request.resource.data.status in ['Activo', 'Pendiente', 'Inactivo'];
+      allow delete: if false;
+    }
+
+    match /documents/{documentId} {
+      allow read: if isAdmin()
+        || (signedIn() && resource.data.ownerEmail == request.auth.token.email);
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /hrRequests/{requestId} {
+      allow read: if isAdmin()
+        || (signedIn() && resource.data.ownerEmail == request.auth.token.email);
+      allow create: if (isAdmin()
+        || (signedIn() && request.resource.data.ownerEmail == request.auth.token.email))
+        && request.resource.data.status == 'Pendiente'
+        && request.resource.data.type in ['Vacaciones', 'Permiso', 'Licencia', 'Horas extra', 'Ausencia'];
+      allow update: if isAdmin()
+        && request.resource.data.status in ['Pendiente', 'Aprobada', 'Rechazada'];
+      allow delete: if false;
+    }
+
+    match /payroll/{payrollId} {
+      allow read: if isAdmin()
+        || (signedIn() && resource.data.ownerEmail == request.auth.token.email);
+      allow create, update: if isAdmin()
+        && request.resource.data.status in ['Borrador', 'Cerrado']
+        && request.resource.data.period is string
+        && request.resource.data.employeeId is string;
+      allow delete: if false;
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if isAdmin()
+        || (signedIn() && resource.data.recipientUid == request.auth.uid);
+      allow update: if signedIn()
+        && resource.data.recipientUid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+      allow create, delete: if false;
+    }
+
+    match /users/{userId}/devices/{deviceId} {
+      allow read, create, update, delete: if signedIn() && request.auth.uid == userId;
+    }
+
+    match /mail/{mailId} {
+      allow read, write: if false;
+    }
+
+    match /attendance/{attendanceId} {
+      allow read: if isAdmin()
+        || (signedIn() && resource.data.userUid == request.auth.uid);
+      allow create: if isAdmin()
+        && request.resource.data.employeeId is string
+        && request.resource.data.type in ['entry', 'exit']
+        && request.resource.data.dateKey is string;
+      allow update, delete: if false;
+    }
+
+    match /attendanceState/{stateId} {
+      allow read, create, update: if isAdmin();
+      allow delete: if false;
+    }
+
+    match /biometricProfiles/{profileId} {
+      allow read, create, update: if isAdmin();
+      allow delete: if false;
+    }
+
+    match /system/{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
