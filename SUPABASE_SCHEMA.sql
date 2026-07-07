@@ -117,11 +117,24 @@ create table if not exists public.hr_requests (
   to_date date not null,
   detail text default '',
   status text not null default 'Pendiente' check (status in ('Pendiente', 'Aprobada', 'Rechazada')),
+  resolution_comment text default '',
+  resolved_at timestamptz,
+  evidence_file_name text default '',
+  evidence_storage_path text default '',
+  evidence_content_type text default '',
+  evidence_size bigint not null default 0,
   created_by uuid references auth.users(id) on delete set null,
   reviewed_by uuid references auth.users(id) on delete set null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.hr_requests add column if not exists resolution_comment text default '';
+alter table public.hr_requests add column if not exists resolved_at timestamptz;
+alter table public.hr_requests add column if not exists evidence_file_name text default '';
+alter table public.hr_requests add column if not exists evidence_storage_path text default '';
+alter table public.hr_requests add column if not exists evidence_content_type text default '';
+alter table public.hr_requests add column if not exists evidence_size bigint not null default 0;
 
 create table if not exists public.payroll (
   id text primary key,

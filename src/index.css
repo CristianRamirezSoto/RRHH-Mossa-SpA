@@ -368,6 +368,11 @@ td { padding: 15px 18px; border-top: 1px solid #edf1ee; color: #526159; font-siz
 .request-card strong { display: block; color: #263d34; font-size: .86rem; }
 .request-card p { margin: 4px 0 0; color: #69786f; font-size: .73rem; }
 .request-card small { display: block; margin-top: 8px; color: #87948d; line-height: 1.45; font-size: .68rem; }
+.request-history { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 7px; align-items: center; }
+.request-history span,
+.request-history button { min-height: 26px; padding: 6px 9px; border-radius: 999px; border: 1px solid #e4ece8; background: #f8fbf9; color: #60736a; font-size: .66rem; font-weight: 700; }
+.request-history button { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; }
+.request-history button:hover { color: #0f513f; border-color: #bdd9cf; background: #eef8f3; }
 .request-state { min-width: 82px; padding: 6px 8px; border-radius: 999px; text-align: center; font-size: .62rem; font-weight: 800; }
 .request-pendiente { color: #96671e; background: #fcf1da; }
 .request-aprobada { color: #247252; background: #e5f5ed; }
@@ -376,6 +381,11 @@ td { padding: 15px 18px; border-top: 1px solid #edf1ee; color: #526159; font-siz
 .request-actions button { width: 32px; height: 32px; border: 1px solid var(--line); border-radius: 9px; display: grid; place-items: center; color: #526b60; background: #fff; }
 .request-actions button:hover:first-child { color: #247252; background: #e5f5ed; }
 .request-actions button:hover:last-child { color: #a34444; background: #fde9e9; }
+.request-resolution-modal { max-width: 620px; }
+.request-resolution-summary { margin: 0 0 16px; padding: 13px 15px; border: 1px solid #e3ece7; border-radius: 14px; background: #f8fbf9; display: grid; gap: 5px; }
+.request-resolution-summary strong { color: #18362d; }
+.request-resolution-summary span,
+.request-resolution-summary p { margin: 0; color: #6f8078; font-size: .78rem; line-height: 1.45; }
 .payroll-period input { min-height: 41px; padding: 0 11px; border: 1px solid var(--line); border-radius: 11px; outline: 0; color: #31473e; background: #fff; }
 .payroll-stats { margin-bottom: 18px; }
 .money-stat { font-size: 1.15rem !important; white-space: nowrap; }
