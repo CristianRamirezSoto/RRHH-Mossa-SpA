@@ -1,6 +1,7 @@
 import { supabase, supabaseConfigured } from '../supabase';
 
 const fallbackNumber = import.meta.env.VITE_HR_WHATSAPP_NUMBER || '';
+const manualFallbackEnabled = import.meta.env.VITE_ENABLE_MANUAL_WHATSAPP_FALLBACK === 'true';
 
 export function whatsappConfigured() {
   return supabaseConfigured || Boolean(formatWhatsappNumber(fallbackNumber));
@@ -25,7 +26,7 @@ export async function notifyRequestByWhatsApp(request) {
     console.warn('No se pudo enviar WhatsApp corporativo:', error?.message || data?.error);
   }
 
-  const opened = openManualWhatsAppRequestNotification(request);
+  const opened = manualFallbackEnabled && openManualWhatsAppRequestNotification(request);
   return opened
     ? { ok: true, mode: 'manual', message: 'No esta activo WhatsApp Empresa; se abrio WhatsApp manual como respaldo.' }
     : { ok: false, mode: 'none', message: 'Solicitud enviada. Falta configurar WhatsApp Empresa en Supabase.' };
