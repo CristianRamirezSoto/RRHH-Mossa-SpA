@@ -387,11 +387,28 @@ td { padding: 15px 18px; border-top: 1px solid #edf1ee; color: #526159; font-siz
 .request-resolution-summary span,
 .request-resolution-summary p { margin: 0; color: #6f8078; font-size: .78rem; line-height: 1.45; }
 .payroll-period input { min-height: 41px; padding: 0 11px; border: 1px solid var(--line); border-radius: 11px; outline: 0; color: #31473e; background: #fff; }
+.payroll-header-actions { display: flex; align-items: flex-end; gap: 10px; }
 .payroll-stats { margin-bottom: 18px; }
 .money-stat { font-size: 1.15rem !important; white-space: nowrap; }
+.payroll-alert-strip { margin-bottom: 18px; padding: 15px 18px; border: 1px solid #e2ece7; border-radius: 16px; display: flex; align-items: center; justify-content: space-between; gap: 14px; background: #fff; }
+.payroll-alert-strip div { display: grid; gap: 3px; }
+.payroll-alert-strip strong { color: #1d3d32; font-size: .9rem; }
+.payroll-alert-strip span { color: #6e8077; font-size: .74rem; }
+.payroll-risk { padding: 7px 10px; border-radius: 999px; font-size: .66rem !important; font-weight: 850; white-space: nowrap; }
+.payroll-risk.warning { color: #856014; background: #fff2cf; }
+.payroll-risk.ok { color: #247252; background: #e6f5ed; }
 .payroll-panel { overflow: hidden; }
+.payroll-table th,
+.payroll-table td { vertical-align: top; }
 .money-input { width: 118px; min-height: 36px; border: 1px solid #dce4df; border-radius: 9px; padding: 0 9px; color: #263d34; background: #fbfcfb; font-size: .75rem; }
-.payroll-actions { display: flex; gap: 6px; }
+.payroll-payment-fields { display: grid; gap: 6px; min-width: 142px; }
+.payroll-payment-fields input { min-height: 34px; border: 1px solid #dce4df; border-radius: 9px; padding: 0 9px; color: #263d34; background: #fbfcfb; font-size: .72rem; }
+.payroll-status { display: inline-flex; min-width: 98px; justify-content: center; padding: 7px 9px; border-radius: 999px; font-size: .63rem; font-weight: 850; white-space: nowrap; }
+.payroll-borrador { color: #66736d; background: #eef2f0; }
+.payroll-listo-para-pago { color: #247252; background: #e5f5ed; }
+.payroll-pendiente-pago { color: #96671e; background: #fcf1da; }
+.payroll-pagado { color: #fff; background: #1f7055; }
+.payroll-actions { display: grid; grid-template-columns: repeat(2, minmax(72px, 1fr)); gap: 6px; min-width: 154px; }
 .payroll-actions button { min-height: 32px; border: 1px solid #cfe0d8; border-radius: 9px; padding: 6px 9px; color: #2d6e55; background: #f4faf7; font-size: .67rem; font-weight: 800; }
 .payroll-actions button:last-child { color: #fff; background: #2f7d62; border-color: #2f7d62; }
 .payroll-actions button:disabled { opacity: .55; cursor: wait; }

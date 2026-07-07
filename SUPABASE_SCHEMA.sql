@@ -147,10 +147,38 @@ create table if not exists public.payroll (
   bonus numeric not null default 0,
   deductions numeric not null default 0,
   net_pay numeric not null default 0,
-  status text not null default 'Borrador' check (status in ('Borrador', 'Cerrado')),
+  status text not null default 'Borrador' check (status in ('Borrador', 'Listo para pago', 'Pendiente pago', 'Pagado')),
+  payment_date date,
+  payment_reference text default '',
+  notes text default '',
+  paid_at timestamptz,
   updated_by uuid references auth.users(id) on delete set null,
   updated_at timestamptz not null default now()
 );
+
+alter table public.payroll add column if not exists payment_date date;
+alter table public.payroll add column if not exists payment_reference text default '';
+alter table public.payroll add column if not exists notes text default '';
+alter table public.payroll add column if not exists paid_at timestamptz;
+
+do $$
+declare
+  constraint_name text;
+begin
+  select conname into constraint_name
+  from pg_constraint
+  where conrelid = 'public.payroll'::regclass
+    and contype = 'c'
+    and pg_get_constraintdef(oid) like '%status%';
+
+  if constraint_name is not null then
+    execute format('alter table public.payroll drop constraint %I', constraint_name);
+  end if;
+end $$;
+
+alter table public.payroll
+  add constraint payroll_status_check
+  check (status in ('Borrador', 'Listo para pago', 'Pendiente pago', 'Pagado'));
 
 create table if not exists public.notifications (
   id uuid primary key default gen_random_uuid(),
