@@ -111,6 +111,9 @@ td { padding: 15px 18px; border-top: 1px solid #edf1ee; color: #526159; font-siz
 .row-actions { display: flex; justify-content: flex-end; gap: 6px; }
 .table-action.warning-action { color: #96671e; background: #fff8e8; border-color: #efd7a9; }
 .table-action.success-action { color: #247252; background: #e5f5ed; border-color: #b9d7ca; }
+.table-action.biometric-reset-action { color: #356f91; background: #edf6fb; border-color: #c9deeb; }
+.table-action.danger-action { color: #a34444; background: #fff1f1; border-color: #efcccc; }
+.table-action:disabled { opacity: .45; cursor: not-allowed; }
 .employees-summary { margin-bottom: 18px; }
 .stacked-cell { display: flex; flex-direction: column; gap: 3px; min-width: 140px; }
 .stacked-cell strong { color: #30463c; font-size: .76rem; }

@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Icon } from '../components/AppLayout';
-import { insertRow, subscribeRows, updateRow } from '../services/supabaseData';
+import { deleteRow, insertRow, subscribeRows, updateRow } from '../services/supabaseData';
+import { resetBiometricProfile } from '../services/attendanceApi';
 
 const emptyForm = {
   name: '',
@@ -75,6 +76,7 @@ export function Employees() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [actionId, setActionId] = useState('');
   const [message, setMessage] = useState('');
 
   useEffect(() => subscribeRows('employees', setEmployees, { orderBy: 'name', ascending: true }), []);
@@ -161,6 +163,38 @@ export function Employees() {
       if (editing === 'new') writeEmployeeDraft(next);
       return next;
     });
+  }
+
+  async function deleteBiometrics(employee) {
+    if (!employee.biometricEnrolled) {
+      setMessage(`${employee.name} no tiene biometria enrolada.`);
+      return;
+    }
+    if (!window.confirm(`Eliminar la biometria facial de ${employee.name}? Debera enrolarse nuevamente para marcar asistencia.`)) return;
+    setActionId(`bio-${employee.id}`);
+    setMessage('');
+    try {
+      await resetBiometricProfile(employee.id);
+      setMessage(`Biometria facial eliminada para ${employee.name}.`);
+    } catch (error) {
+      setMessage(`No se pudo eliminar biometria: ${error.message}`);
+    } finally {
+      setActionId('');
+    }
+  }
+
+  async function deleteEmployee(employee) {
+    if (!window.confirm(`Eliminar definitivamente a ${employee.name}? Esta accion borra su ficha y registros vinculados en la base de datos.`)) return;
+    setActionId(`delete-${employee.id}`);
+    setMessage('');
+    try {
+      await deleteRow('employees', employee.id);
+      setMessage(`${employee.name} fue eliminado correctamente.`);
+    } catch (error) {
+      setMessage(`No se pudo eliminar colaborador: ${error.message}`);
+    } finally {
+      setActionId('');
+    }
   }
 
   const canEdit = profile?.role === 'admin';
@@ -254,6 +288,24 @@ export function Employees() {
                           title={employee.biometricEnrolled ? 'Actualizar enrolamiento' : 'Enrolar rostro'}
                         >
                           <Icon name="scan" size={17} />
+                        </button>
+                        <button
+                          className="table-action biometric-reset-action"
+                          type="button"
+                          onClick={() => deleteBiometrics(employee)}
+                          disabled={Boolean(actionId) || !employee.biometricEnrolled}
+                          title="Eliminar biometria facial"
+                        >
+                          <Icon name="fingerprint" size={17} />
+                        </button>
+                        <button
+                          className="table-action danger-action"
+                          type="button"
+                          onClick={() => deleteEmployee(employee)}
+                          disabled={Boolean(actionId)}
+                          title="Eliminar colaborador"
+                        >
+                          <Icon name="trash" size={17} />
                         </button>
                       </div>
                     </td>

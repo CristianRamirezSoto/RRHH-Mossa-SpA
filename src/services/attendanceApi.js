@@ -59,6 +59,29 @@ export async function saveBiometricProfile(employeeId, descriptor, sampleCount) 
   return { ok: true };
 }
 
+export async function resetBiometricProfile(employeeId) {
+  ensureSupabase();
+  if (!employeeId) throw new Error('Trabajador invalido.');
+
+  const { error: profileError } = await supabase
+    .from('biometric_profiles')
+    .delete()
+    .eq('employee_id', employeeId);
+  if (profileError) throw profileError;
+
+  const { error: updateError } = await supabase
+    .from('employees')
+    .update({
+      biometric_enrolled: false,
+      biometric_updated_at: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', employeeId);
+  if (updateError) throw updateError;
+
+  return { ok: true };
+}
+
 export async function registerAttendance(employeeId, confidence, markType) {
   ensureSupabase();
   if (!['entry', 'exit'].includes(markType)) throw new Error('Tipo de marcacion invalido.');
