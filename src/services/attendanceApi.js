@@ -21,7 +21,7 @@ export async function listBiometricProfiles() {
 
 export async function saveBiometricProfile(employeeId, descriptor, sampleCount) {
   ensureSupabase();
-  if (!employeeId || !Array.isArray(descriptor)) {
+  if (!employeeId || !isValidBiometricDescriptor(descriptor)) {
     throw new Error('Plantilla biometrica invalida.');
   }
 
@@ -62,7 +62,7 @@ export async function saveBiometricProfile(employeeId, descriptor, sampleCount) 
 export async function registerAttendance(employeeId, confidence, markType) {
   ensureSupabase();
   if (!['entry', 'exit'].includes(markType)) throw new Error('Tipo de marcacion invalido.');
-  if (!Number.isFinite(Number(confidence)) || Number(confidence) < 0.62) {
+  if (!Number.isFinite(Number(confidence)) || Number(confidence) < 0.52) {
     throw new Error('La coincidencia facial no alcanzo el nivel minimo.');
   }
 
@@ -146,6 +146,13 @@ export async function registerAttendance(employeeId, confidence, markType) {
       hour12: false,
     }).format(now),
   };
+}
+
+function isValidBiometricDescriptor(descriptor) {
+  if (Array.isArray(descriptor)) return descriptor.length > 0;
+  if (!descriptor || typeof descriptor !== 'object') return false;
+  return Array.isArray(descriptor.centroid) && descriptor.centroid.length > 0
+    && Array.isArray(descriptor.templates) && descriptor.templates.length > 0;
 }
 
 export async function updateEmployeeProfile(userId, payload) {

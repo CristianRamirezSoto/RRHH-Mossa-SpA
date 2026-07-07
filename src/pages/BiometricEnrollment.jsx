@@ -13,11 +13,11 @@ import { saveBiometricProfile } from '../services/attendanceApi';
 import { subscribeRows } from '../services/supabaseData';
 
 const enrollmentSteps = [
-  { id: 'center', label: 'Mira directamente a la cámara' },
-  { id: 'turn-left', label: 'Gira suavemente el rostro a la izquierda' },
-  { id: 'turn-right', label: 'Gira suavemente el rostro a la derecha' },
-  { id: 'blink', label: 'Parpadea una vez' },
-  { id: 'center-final', label: 'Vuelve a mirar al frente' },
+  { id: 'center', label: 'Mira directamente a la camara', samples: 4 },
+  { id: 'turn-left', label: 'Gira suavemente el rostro a la izquierda', samples: 3 },
+  { id: 'turn-right', label: 'Gira suavemente el rostro a la derecha', samples: 3 },
+  { id: 'blink', label: 'Parpadea una vez', samples: 2 },
+  { id: 'center-final', label: 'Vuelve a mirar al frente', samples: 4 },
 ];
 
 export function BiometricEnrollment() {
@@ -29,7 +29,8 @@ export function BiometricEnrollment() {
   const [selectedId, setSelectedId] = useState('');
   const [active, setActive] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
-  const [status, setStatus] = useState('Preparando el motor biométrico local…');
+  const [stepSamples, setStepSamples] = useState(0);
+  const [status, setStatus] = useState('Preparando el motor biometrico local...');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => subscribeRows('employees', setEmployees, { orderBy: 'name', ascending: true }), []);
@@ -41,7 +42,7 @@ export function BiometricEnrollment() {
   useEffect(() => {
     loadFaceEngine()
       .then(() => setStatus('Selecciona un trabajador para comenzar.'))
-      .catch(() => setStatus('No fue posible cargar el motor biométrico.'));
+      .catch(() => setStatus('No fue posible cargar el motor biometrico.'));
   }, []);
 
   const selectedEmployee = useMemo(
@@ -68,17 +69,18 @@ export function BiometricEnrollment() {
       return;
     }
     if (!selectedEmployee.biometricConsent) {
-      setStatus('Primero registra el consentimiento biométrico en la ficha del trabajador.');
+      setStatus('Primero registra el consentimiento biometrico en la ficha del trabajador.');
       return;
     }
     samplesRef.current = [];
     setStepIndex(0);
+    setStepSamples(0);
     setActive(true);
-    setStatus(enrollmentSteps[0].label);
+    setStatus(`${enrollmentSteps[0].label}. Captura 1/${enrollmentSteps[0].samples}.`);
   }
 
   const handleCameraError = useCallback(() => {
-    setStatus('No fue posible acceder a la cámara. Revisa permisos del navegador o si otra app la está usando.');
+    setStatus('No fue posible acceder a la camara. Revisa permisos del navegador o si otra app la esta usando.');
   }, []);
 
   useEffect(() => {
@@ -91,7 +93,7 @@ export function BiometricEnrollment() {
       try {
         const analysis = await analyzeFace(video);
         if (!analysis.detected) {
-          setStatus('No vemos un rostro. Acércate y mira la cámara.');
+          setStatus('No vemos un rostro. Acercate y mira la camara.');
           return;
         }
         const quality = biometricQuality(analysis);
@@ -99,24 +101,33 @@ export function BiometricEnrollment() {
           setStatus(quality.reason);
           return;
         }
+
         const step = enrollmentSteps[stepIndex];
         if (!enrollmentStepCompleted(step, analysis)) {
-          setStatus(step.label);
+          setStatus(`${step.label}. Captura ${stepSamples + 1}/${step.samples}.`);
           return;
         }
 
         samplesRef.current.push(analysis.descriptor);
+        const nextStepSamples = stepSamples + 1;
+        if (nextStepSamples < step.samples) {
+          setStepSamples(nextStepSamples);
+          setStatus(`${step.label}. Captura ${nextStepSamples + 1}/${step.samples}.`);
+          return;
+        }
+
         if (stepIndex < enrollmentSteps.length - 1) {
           const nextIndex = stepIndex + 1;
           setStepIndex(nextIndex);
-          setStatus(enrollmentSteps[nextIndex].label);
+          setStepSamples(0);
+          setStatus(`${enrollmentSteps[nextIndex].label}. Captura 1/${enrollmentSteps[nextIndex].samples}.`);
         } else {
           setActive(false);
           setSaving(true);
-          setStatus('Protegiendo y guardando la plantilla biométrica…');
+          setStatus('Protegiendo y guardando la plantilla biometrica...');
           const descriptor = createBiometricTemplate(samplesRef.current);
           await saveBiometricProfile(selectedEmployee.id, descriptor, samplesRef.current.length);
-          setStatus(`${selectedEmployee.name} quedó enrolado correctamente.`);
+          setStatus(`${selectedEmployee.name} quedo enrolado correctamente con ${samplesRef.current.length} muestras.`);
           setSaving(false);
         }
       } catch (error) {
@@ -126,17 +137,17 @@ export function BiometricEnrollment() {
       } finally {
         runningRef.current = false;
       }
-    }, 850);
+    }, 700);
     return () => window.clearInterval(timer);
-  }, [active, saving, selectedEmployee, stepIndex]);
+  }, [active, saving, selectedEmployee, stepIndex, stepSamples]);
 
   return (
     <div className="page biometric-page">
       <header className="page-header">
         <div>
-          <p className="eyebrow">Configuración biométrica</p>
+          <p className="eyebrow">Configuracion biometrica</p>
           <h1>Enrolamiento facial</h1>
-          <p className="page-subtitle">Registra la plantilla facial de cada trabajador usando varias posiciones y prueba de vida.</p>
+          <p className="page-subtitle">Registra varias muestras por trabajador para mejorar el marcaje con lentes, cambios de luz y angulos normales.</p>
         </div>
       </header>
 
@@ -171,14 +182,14 @@ export function BiometricEnrollment() {
             onCameraError={handleCameraError}
           />
           <div className="enrollment-status">
-            <span className="enrollment-step">{active ? `${stepIndex + 1}/${enrollmentSteps.length}` : <Icon name="face" />}</span>
-            <div><strong>{active ? enrollmentSteps[stepIndex].label : 'Enrolamiento biométrico'}</strong><p>{status}</p></div>
+            <span className="enrollment-step">{active ? `${stepIndex + 1}.${stepSamples + 1}` : <Icon name="face" />}</span>
+            <div><strong>{active ? enrollmentSteps[stepIndex].label : 'Enrolamiento biometrico'}</strong><p>{status}</p></div>
           </div>
         </div>
 
         <aside className="panel enrollment-control">
           <div className="panel-heading">
-            <div><h2>Trabajador</h2><p>Selecciona a quién deseas enrolar</p></div>
+            <div><h2>Trabajador</h2><p>Selecciona a quien deseas enrolar</p></div>
           </div>
           <div className="enrollment-control-body">
             <label className="field">
@@ -187,7 +198,7 @@ export function BiometricEnrollment() {
                 <option value="">Seleccionar trabajador</option>
                 {employees.map((employee) => (
                   <option key={employee.id} value={employee.id}>
-                    {employee.name}{employee.biometricEnrolled ? ' · Enrolado' : ''}
+                    {employee.name}{employee.biometricEnrolled ? ' - Enrolado' : ''}
                   </option>
                 ))}
               </select>
@@ -204,7 +215,7 @@ export function BiometricEnrollment() {
             )}
 
             <div className="enrollment-checks">
-              <CheckItem ready={selectedEmployee?.biometricConsent} text="Consentimiento biométrico" />
+              <CheckItem ready={selectedEmployee?.biometricConsent} text="Consentimiento biometrico" />
               <CheckItem ready={selectedEmployee?.status === 'Activo'} text="Trabajador activo" />
               <CheckItem ready={selectedEmployee?.biometricEnrolled} text="Plantilla facial registrada" />
             </div>
@@ -213,7 +224,7 @@ export function BiometricEnrollment() {
               <Icon name="scan" />
               {selectedEmployee?.biometricEnrolled ? 'Actualizar enrolamiento' : 'Comenzar enrolamiento'}
             </button>
-            <p className="biometric-privacy-note"><Icon name="shield" size={15} /> No se almacenan fotografías. Solo una representación matemática protegida.</p>
+            <p className="biometric-privacy-note"><Icon name="shield" size={15} /> Si el trabajador usa lentes normalmente, enrola con esos lentes y buena luz frontal. No se almacenan fotografias, solo una representacion matematica protegida.</p>
           </div>
         </aside>
       </section>
@@ -233,5 +244,5 @@ function CheckItem({ ready, text }) {
 }
 
 function initials(name = '') {
-  return name.split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || '—';
+  return name.split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || '-';
 }

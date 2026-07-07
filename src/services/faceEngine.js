@@ -11,13 +11,13 @@ const human = new Human({
       enabled: true,
       modelPath: 'blazeface.json',
       maxDetected: 1,
-      minConfidence: 0.65,
-      minSize: 100,
+      minConfidence: 0.55,
+      minSize: 80,
       rotation: true,
     },
     mesh: { enabled: true, modelPath: 'facemesh.json' },
     iris: { enabled: true, modelPath: 'iris.json' },
-    description: { enabled: true, modelPath: 'faceres.json', minConfidence: 0.65 },
+    description: { enabled: true, modelPath: 'faceres.json', minConfidence: 0.55 },
     antispoof: { enabled: true, modelPath: 'antispoof.json' },
     liveness: { enabled: true, modelPath: 'liveness.json' },
     emotion: { enabled: false },
@@ -56,6 +56,10 @@ export async function analyzeFace(input) {
     real: normalizeScore(face.real),
     live: normalizeScore(face.live),
     rotation: face.rotation?.angle || null,
+    size: face.boxRaw ? {
+      width: Number(face.boxRaw[2] || 0),
+      height: Number(face.boxRaw[3] || 0),
+    } : null,
     gestures: (result.gesture || [])
       .filter((item) => Object.prototype.hasOwnProperty.call(item, 'face'))
       .map((item) => item.gesture),
@@ -71,31 +75,51 @@ function normalizeScore(value) {
 }
 
 export function createBiometricTemplate(descriptors) {
-  const validDescriptors = descriptors.filter((descriptor) => descriptor?.length);
+  const validDescriptors = descriptors
+    .map(normalizeDescriptor)
+    .filter((descriptor) => descriptor?.length);
   if (!validDescriptors.length) return null;
   const length = validDescriptors[0].length;
+  const sameLengthDescriptors = validDescriptors.filter((descriptor) => descriptor.length === length);
+  const templates = sameLengthDescriptors.map((descriptor) => normalizeVector(descriptor));
   const average = Array.from({ length }, (_, index) => (
-    validDescriptors.reduce((sum, descriptor) => sum + Number(descriptor[index] || 0), 0) / validDescriptors.length
+    templates.reduce((sum, descriptor) => sum + Number(descriptor[index] || 0), 0) / templates.length
   ));
-  const magnitude = Math.sqrt(average.reduce((sum, value) => sum + value * value, 0)) || 1;
-  return average.map((value) => value / magnitude);
+  return {
+    version: 2,
+    createdAt: new Date().toISOString(),
+    sampleCount: templates.length,
+    centroid: normalizeVector(average),
+    templates,
+  };
 }
 
-export function findBestFaceMatch(descriptor, profiles, threshold = 0.54) {
+export function findBestFaceMatch(descriptor, profiles, threshold = 0.52) {
   const currentDescriptor = normalizeDescriptor(descriptor);
   if (!currentDescriptor?.length) return null;
   const matches = profiles
-    .map((profile) => ({ ...profile, descriptor: normalizeDescriptor(profile.descriptor) }))
-    .filter((profile) => profile.descriptor?.length === currentDescriptor.length)
-    .map((profile) => ({
-      ...profile,
-      similarity: human.match.similarity(currentDescriptor, profile.descriptor),
-    }))
+    .map((profile) => {
+      const descriptors = extractProfileDescriptors(profile.descriptor)
+        .filter((item) => item?.length === currentDescriptor.length);
+      const similarities = descriptors.map((item) => human.match.similarity(currentDescriptor, item));
+      const bestSimilarity = Math.max(...similarities, 0);
+      const averageTopSimilarity = average(similarities.sort((a, b) => b - a).slice(0, 3));
+      return {
+        ...profile,
+        descriptors,
+        similarity: Math.max(bestSimilarity, averageTopSimilarity),
+        bestSimilarity,
+      };
+    })
+    .filter((profile) => profile.descriptors.length)
     .sort((a, b) => b.similarity - a.similarity);
 
   const best = matches[0] || null;
   if (!best) return null;
-  return { ...best, accepted: best.similarity >= threshold, threshold };
+  const second = matches[1] || null;
+  const margin = second ? best.similarity - second.similarity : 1;
+  const accepted = best.similarity >= threshold && (best.similarity >= 0.62 || margin >= 0.025);
+  return { ...best, accepted, threshold, margin, secondSimilarity: second?.similarity || 0 };
 }
 
 function normalizeDescriptor(descriptor) {
@@ -134,15 +158,40 @@ export function challengeCompleted(challenge, analysis) {
 export function biometricQuality(analysis, options = {}) {
   const { requireAntiSpoof = false } = options;
   if (!analysis.detected || !analysis.descriptor) return { valid: false, reason: 'Rostro no detectado' };
-  if (analysis.score < 0.5) return { valid: false, reason: 'Acercate un poco mas a la camara' };
+  if (analysis.score < 0.42) return { valid: false, reason: 'Acercate un poco mas a la camara' };
+  if (analysis.size && (analysis.size.width < 82 || analysis.size.height < 82)) {
+    return { valid: false, reason: 'Acercate un poco mas para capturar mejor el rostro.' };
+  }
 
   if (requireAntiSpoof) {
     const real = analysis.real ?? 1;
     const live = analysis.live ?? 1;
-    if (real < 0.32 && live < 0.32) {
+    if (real < 0.25 && live < 0.25) {
       return { valid: false, reason: 'Necesitamos ver movimiento real, no una foto.' };
     }
   }
 
   return { valid: true };
+}
+
+function extractProfileDescriptors(descriptor) {
+  if (!descriptor) return [];
+  if (Array.isArray(descriptor) || ArrayBuffer.isView(descriptor)) return [normalizeDescriptor(descriptor)];
+  if (descriptor.version >= 2) {
+    return [
+      normalizeDescriptor(descriptor.centroid),
+      ...(Array.isArray(descriptor.templates) ? descriptor.templates.map(normalizeDescriptor) : []),
+    ].filter(Boolean);
+  }
+  return [normalizeDescriptor(descriptor)];
+}
+
+function normalizeVector(values) {
+  const numericValues = values.map(Number);
+  const magnitude = Math.sqrt(numericValues.reduce((sum, value) => sum + value * value, 0)) || 1;
+  return numericValues.map((value) => value / magnitude);
+}
+
+function average(values) {
+  return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
 }

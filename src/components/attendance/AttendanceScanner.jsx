@@ -97,7 +97,8 @@ export function AttendanceScanner({ markType = 'entry', onRegistered, terminalEn
       const match = findBestFaceMatch(analysis.descriptor, profilesRef.current);
       if (!match?.accepted) {
         const percent = match ? Math.round(match.similarity * 100) : 0;
-        throw new Error(`Rostro no reconocido (${percent}%). Reenrola el rostro con buena luz.`);
+        const margin = match ? Math.round((match.margin || 0) * 100) : 0;
+        throw new Error(`Rostro no reconocido (${percent}%, margen ${margin}%). Reenrola con buena luz y con los lentes habituales si los usa.`);
       }
 
       setStatus('confirmed');
