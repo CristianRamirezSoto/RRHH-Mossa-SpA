@@ -30,6 +30,16 @@ const emptyForm = {
 const statusOptions = ['Activo', 'Pendiente', 'Inactivo'];
 const contractOptions = ['Indefinido', 'Plazo fijo', 'Part time', 'Honorarios', 'Practica'];
 const employeeDraftKey = 'rrhh-mossaspa-employee-draft';
+const optionalEmployeeColumns = {
+  contract_type: 'contractType',
+  work_location: 'workLocation',
+  schedule_end: 'scheduleEnd',
+  weekly_hours: 'weeklyHours',
+  supervisor: 'supervisor',
+  supervisor_whatsapp: 'supervisorWhatsapp',
+  emergency_contact: 'emergencyContact',
+  emergency_phone: 'emergencyPhone',
+};
 
 function readEmployeeDraft() {
   try {
@@ -125,15 +135,16 @@ export function Employees() {
         updatedAt: new Date().toISOString(),
       };
 
-      if (editing === 'new') {
-        await insertRow('employees', { ...payload, createdAt: new Date().toISOString() });
-      } else {
-        await updateRow('employees', editing, payload);
-      }
+      const result = editing === 'new'
+        ? await saveEmployeeWithSchemaFallback({ ...payload, createdAt: new Date().toISOString() }, 'new')
+        : await saveEmployeeWithSchemaFallback(payload, editing);
 
       setEditing(null);
       setForm(emptyForm);
       if (editing === 'new') clearEmployeeDraft();
+      if (result.missingColumns.length) {
+        setMessage(`Colaborador guardado, pero falta ejecutar SUPABASE_EMPLOYEES_PATCH.sql para guardar: ${result.missingColumns.join(', ')}.`);
+      }
     } catch (error) {
       if (editing === 'new') writeEmployeeDraft(form);
       setMessage(error.code === '42501'
@@ -255,6 +266,8 @@ export function Employees() {
         {!visible.length && <div className="empty-state large"><Icon name="search" size={30} /><p>No encontramos colaboradores con esos filtros.</p></div>}
       </section>
 
+      {message && !editing && <p className="form-message warning">{message}</p>}
+
       {editing && (
         <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setEditing(null)}>
           <form className="modal employee-modal" onSubmit={handleSubmit}>
@@ -315,6 +328,36 @@ export function Employees() {
       )}
     </div>
   );
+}
+
+async function saveEmployeeWithSchemaFallback(payload, employeeId) {
+  const missingColumns = [];
+  let currentPayload = { ...payload };
+
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    try {
+      if (employeeId === 'new') {
+        await insertRow('employees', currentPayload);
+      } else {
+        await updateRow('employees', employeeId, currentPayload);
+      }
+      return { missingColumns };
+    } catch (error) {
+      const column = missingEmployeeColumn(error);
+      const field = optionalEmployeeColumns[column];
+      if (!field || !(field in currentPayload)) throw error;
+      missingColumns.push(column);
+      const { [field]: _removed, ...nextPayload } = currentPayload;
+      currentPayload = nextPayload;
+    }
+  }
+
+  throw new Error('No se pudo guardar porque faltan demasiadas columnas en employees.');
+}
+
+function missingEmployeeColumn(error) {
+  if (!error?.message?.includes("column of 'employees'")) return '';
+  return error.message.match(/'([^']+)' column of 'employees'/)?.[1] || '';
 }
 
 function SummaryCard({ icon, label, value, tone = '' }) {

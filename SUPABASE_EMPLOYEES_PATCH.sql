@@ -25,6 +25,7 @@ where table_schema = 'public'
     'schedule_end',
     'weekly_hours',
     'supervisor',
+    'supervisor_whatsapp',
     'emergency_contact',
     'emergency_phone'
   )
