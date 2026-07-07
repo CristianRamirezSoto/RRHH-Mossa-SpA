@@ -10,3 +10,5 @@ ui-debug.log
 *.err.log
 *.log
 emulator-data
+supabase/functions/.env
+supabase/functions/.env.local

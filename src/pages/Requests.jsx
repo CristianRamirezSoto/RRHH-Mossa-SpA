@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Icon } from '../components/AppLayout';
 import { insertRow, subscribeRows, updateRow } from '../services/supabaseData';
-import { openWhatsAppRequestNotification, whatsappConfigured } from '../services/whatsapp';
+import { notifyRequestByWhatsApp, whatsappConfigured, whatsappModeLabel } from '../services/whatsapp';
 
 const requestTypes = ['Vacaciones', 'Permiso', 'Licencia', 'Horas extra', 'Ausencia'];
 const emptyForm = { employeeId: '', type: 'Vacaciones', fromDate: '', toDate: '', detail: '' };
@@ -72,12 +72,10 @@ export function Requests() {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       });
-      const opened = openWhatsAppRequestNotification(request);
+      const whatsappResult = await notifyRequestByWhatsApp(request);
       setForm({ ...emptyForm, employeeId: isAdmin ? '' : selectedEmployee.id });
-      setMessage(opened
-        ? 'Solicitud enviada. Se abrio WhatsApp con el aviso listo para enviar.'
-        : 'Solicitud enviada. Configura VITE_HR_WHATSAPP_NUMBER para probar avisos por WhatsApp.');
-      setMessageTone(opened ? 'success' : 'warning');
+      setMessage(whatsappResult.message);
+      setMessageTone(whatsappResult.ok ? 'success' : 'warning');
     } catch (error) {
       setMessage(`No se pudo enviar la solicitud: ${error.message}`);
       setMessageTone('error');
@@ -92,6 +90,12 @@ export function Requests() {
       reviewedBy: user.id,
       updatedAt: new Date().toISOString(),
     });
+  }
+
+  async function notifyRequest(request) {
+    const result = await notifyRequestByWhatsApp(request);
+    setMessage(result.message);
+    setMessageTone(result.ok ? 'success' : 'warning');
   }
 
   return (
@@ -116,8 +120,8 @@ export function Requests() {
             <div className={`field-wide whatsapp-test-card ${whatsappConfigured() ? 'ready' : 'warning'}`}>
               <Icon name={whatsappConfigured() ? 'check' : 'alert'} size={17} />
               <span>
-                <strong>{whatsappConfigured() ? 'WhatsApp de prueba configurado' : 'WhatsApp de prueba pendiente'}</strong>
-                <small>{whatsappConfigured() ? 'Al enviar una solicitud se abrira WhatsApp con el mensaje preparado.' : 'Agrega VITE_HR_WHATSAPP_NUMBER en .env.local para probar con tu celular.'}</small>
+                <strong>{whatsappConfigured() ? `${whatsappModeLabel()} configurado` : 'WhatsApp Empresa pendiente'}</strong>
+                <small>{whatsappConfigured() ? 'Al enviar una solicitud se notificara al canal de RRHH configurado.' : 'Configura la funcion segura de Supabase con las credenciales de WhatsApp Business Cloud API.'}</small>
               </span>
             </div>
             <label className="field field-wide">
@@ -166,7 +170,7 @@ export function Requests() {
                 </div>
                 {isAdmin && item.status === 'Pendiente' && (
                   <div className="request-actions">
-                    {whatsappConfigured() && <button type="button" onClick={() => openWhatsAppRequestNotification(item)} title="Enviar por WhatsApp"><Icon name="bell" size={16} /></button>}
+                    {whatsappConfigured() && <button type="button" onClick={() => notifyRequest(item)} title="Notificar por WhatsApp Empresa"><Icon name="bell" size={16} /></button>}
                     <button type="button" onClick={() => updateStatus(item, 'Aprobada')} title="Aprobar"><Icon name="check" size={16} /></button>
                     <button type="button" onClick={() => updateStatus(item, 'Rechazada')} title="Rechazar"><Icon name="close" size={16} /></button>
                   </div>
