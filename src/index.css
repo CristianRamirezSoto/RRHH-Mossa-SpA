@@ -398,18 +398,26 @@ td { padding: 15px 18px; border-top: 1px solid #edf1ee; color: #526159; font-siz
 .payroll-risk.warning { color: #856014; background: #fff2cf; }
 .payroll-risk.ok { color: #247252; background: #e6f5ed; }
 .payroll-panel { overflow: hidden; }
-.payroll-table th,
-.payroll-table td { vertical-align: top; }
-.money-input { width: 118px; min-height: 36px; border: 1px solid #dce4df; border-radius: 9px; padding: 0 9px; color: #263d34; background: #fbfcfb; font-size: .75rem; }
-.payroll-payment-fields { display: grid; gap: 6px; min-width: 142px; }
-.payroll-payment-fields input { min-height: 34px; border: 1px solid #dce4df; border-radius: 9px; padding: 0 9px; color: #263d34; background: #fbfcfb; font-size: .72rem; }
+.payroll-list { padding: 0 22px 22px; display: grid; gap: 14px; }
+.payroll-card { padding: 16px; border: 1px solid #e3ece7; border-radius: 16px; display: grid; grid-template-columns: minmax(220px, .9fr) minmax(170px, .55fr) minmax(270px, 1fr) minmax(240px, .9fr); gap: 14px; align-items: start; background: #fff; }
+.payroll-card-header { display: grid; gap: 12px; }
+.payroll-net-box { min-height: 92px; padding: 14px; border-radius: 14px; display: grid; align-content: center; gap: 5px; background: #f2faf6; border: 1px solid #d6eadf; }
+.payroll-net-box span { color: #587066; text-transform: uppercase; letter-spacing: .06em; font-size: .58rem; font-weight: 850; }
+.payroll-net-box strong { color: #164635; font-size: 1.25rem; white-space: nowrap; }
+.payroll-edit-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.payroll-edit-grid label,
+.payroll-payment-panel label { display: grid; gap: 5px; color: #6c7e75; text-transform: uppercase; letter-spacing: .07em; font-size: .55rem; font-weight: 850; }
+.money-input,
+.payroll-payment-panel input { width: 100%; min-height: 38px; border: 1px solid #dce4df; border-radius: 10px; padding: 0 10px; color: #263d34; background: #fbfcfb; font-size: .76rem; text-transform: none; letter-spacing: 0; }
+.payroll-payment-panel { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 8px; }
+.payroll-note-field { grid-column: 1 / -1; }
 .payroll-status { display: inline-flex; min-width: 98px; justify-content: center; padding: 7px 9px; border-radius: 999px; font-size: .63rem; font-weight: 850; white-space: nowrap; }
 .payroll-borrador { color: #66736d; background: #eef2f0; }
 .payroll-listo-para-pago { color: #247252; background: #e5f5ed; }
 .payroll-pendiente-pago { color: #96671e; background: #fcf1da; }
 .payroll-pagado { color: #fff; background: #1f7055; }
-.payroll-actions { display: grid; grid-template-columns: repeat(2, minmax(72px, 1fr)); gap: 6px; min-width: 154px; }
-.payroll-actions button { min-height: 32px; border: 1px solid #cfe0d8; border-radius: 9px; padding: 6px 9px; color: #2d6e55; background: #f4faf7; font-size: .67rem; font-weight: 800; }
+.payroll-actions { display: grid; grid-template-columns: repeat(2, minmax(72px, 1fr)); gap: 7px; }
+.payroll-actions button { min-height: 36px; border: 1px solid #cfe0d8; border-radius: 10px; padding: 7px 10px; color: #2d6e55; background: #f4faf7; font-size: .68rem; font-weight: 850; }
 .payroll-actions button:last-child { color: #fff; background: #2f7d62; border-color: #2f7d62; }
 .payroll-actions button:disabled { opacity: .55; cursor: wait; }
 
@@ -424,6 +432,8 @@ td { padding: 15px 18px; border-top: 1px solid #edf1ee; color: #526159; font-siz
   .attendance-summary-grid { grid-template-columns: 1fr 1fr; }
   .biometric-layout { grid-template-columns: minmax(0, 1.2fr) minmax(290px, .8fr); }
   .hr-workflow-grid { grid-template-columns: 1fr; }
+  .payroll-card { grid-template-columns: 1fr 1fr; }
+  .payroll-net-box { min-height: 82px; }
 }
 @media (max-width: 760px) {
   .app-shell { grid-template-columns: 1fr; padding-bottom: 72px; }
@@ -453,6 +463,12 @@ td { padding: 15px 18px; border-top: 1px solid #edf1ee; color: #526159; font-siz
   .workflow-notice-actions .primary-button, .workflow-notice-actions .secondary-button { flex: 1; }
   .attendance-records-heading { flex-direction: column; }
   .compact-form { grid-template-columns: 1fr; }
+  .payroll-header-actions { align-items: stretch; flex-direction: column; }
+  .payroll-alert-strip { align-items: stretch; flex-direction: column; }
+  .payroll-card { grid-template-columns: 1fr; }
+  .payroll-edit-grid { grid-template-columns: 1fr; }
+  .payroll-payment-panel { grid-template-columns: 1fr; }
+  .payroll-actions { grid-template-columns: 1fr 1fr; }
   .attendance-main-grid { grid-template-columns: 1fr; }
   .camera-feed { min-height: 390px; }
   .biometric-layout { grid-template-columns: 1fr; }

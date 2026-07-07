@@ -148,7 +148,7 @@ export function Payroll() {
         </span>
       </section>
 
-      <section className="panel table-panel payroll-panel">
+      <section className="panel payroll-panel">
         <div className="panel-heading attendance-records-heading">
           <div>
             <h2>Nomina del periodo</h2>
@@ -160,26 +160,10 @@ export function Payroll() {
             ))}
           </div>
         </div>
-        <div className="table-wrap">
-          <table className="payroll-table">
-            <thead>
-              <tr>
-                <th>Colaborador</th>
-                <th>Sueldo base</th>
-                <th>Bonos</th>
-                <th>Descuentos</th>
-                <th>Liquido</th>
-                <th>Pago</th>
-                <th>Estado</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {visibleRows.map((row) => (
-                <PayrollRow key={row.employee.id} row={row} onSave={saveRow} saving={savingId === `${period}_${row.employee.id}`} />
-              ))}
-            </tbody>
-          </table>
+        <div className="payroll-list">
+          {visibleRows.map((row) => (
+            <PayrollRow key={row.employee.id} row={row} onSave={saveRow} saving={savingId === `${period}_${row.employee.id}`} />
+          ))}
         </div>
         {!visibleRows.length && <div className="empty-state large"><Icon name="users" size={30} /><p>No hay colaboradores para este filtro.</p></div>}
       </section>
@@ -195,33 +179,57 @@ function PayrollRow({ row, onSave, saving }) {
   const canPay = draft.status === 'Listo para pago' || draft.status === 'Pendiente pago';
 
   return (
-    <tr>
-      <td>
+    <article className="payroll-card">
+      <div className="payroll-card-header">
         <div className="employee-cell">
           <span className="avatar avatar-soft">{initials(draft.employee.name)}</span>
           <span><strong>{draft.employee.name}</strong><small>{draft.employee.position || 'Cargo sin definir'}</small></span>
         </div>
-      </td>
-      <td><MoneyInput value={draft.baseSalary} onChange={(value) => setDraft((current) => ({ ...current, baseSalary: value }))} /></td>
-      <td><MoneyInput value={draft.bonus} onChange={(value) => setDraft((current) => ({ ...current, bonus: value }))} /></td>
-      <td><MoneyInput value={draft.deductions} onChange={(value) => setDraft((current) => ({ ...current, deductions: value }))} /></td>
-      <td><strong>{formatMoney(net)}</strong></td>
-      <td>
-        <div className="payroll-payment-fields">
+        <span className={`payroll-status payroll-${slug(draft.status)}`}>{draft.status}</span>
+      </div>
+
+      <div className="payroll-net-box">
+        <span>Liquido a pagar</span>
+        <strong>{formatMoney(net)}</strong>
+      </div>
+
+      <div className="payroll-edit-grid">
+        <label>
+          <span>Sueldo base</span>
+          <MoneyInput value={draft.baseSalary} onChange={(value) => setDraft((current) => ({ ...current, baseSalary: value }))} />
+        </label>
+        <label>
+          <span>Bonos</span>
+          <MoneyInput value={draft.bonus} onChange={(value) => setDraft((current) => ({ ...current, bonus: value }))} />
+        </label>
+        <label>
+          <span>Descuentos</span>
+          <MoneyInput value={draft.deductions} onChange={(value) => setDraft((current) => ({ ...current, deductions: value }))} />
+        </label>
+      </div>
+
+      <div className="payroll-payment-panel">
+        <label>
+          <span>Fecha de pago</span>
           <input type="date" value={draft.paymentDate || ''} onChange={(event) => setDraft((current) => ({ ...current, paymentDate: event.target.value }))} />
-          <input value={draft.paymentReference} onChange={(event) => setDraft((current) => ({ ...current, paymentReference: event.target.value }))} placeholder="Referencia" />
-        </div>
-      </td>
-      <td><span className={`payroll-status payroll-${slug(draft.status)}`}>{draft.status}</span></td>
-      <td>
-        <div className="payroll-actions">
-          <button type="button" disabled={saving} onClick={() => onSave(draft, 'Borrador')}>Guardar</button>
-          <button type="button" disabled={saving} onClick={() => onSave(draft, 'Listo para pago')}>Listo</button>
-          <button type="button" disabled={saving} onClick={() => onSave(draft, 'Pendiente pago')}>Pendiente</button>
-          <button type="button" disabled={saving || !canPay} onClick={() => onSave(draft, 'Pagado')}>Pagar</button>
-        </div>
-      </td>
-    </tr>
+        </label>
+        <label>
+          <span>Referencia</span>
+          <input value={draft.paymentReference} onChange={(event) => setDraft((current) => ({ ...current, paymentReference: event.target.value }))} placeholder="Transferencia, folio o comprobante" />
+        </label>
+        <label className="payroll-note-field">
+          <span>Observacion</span>
+          <input value={draft.notes} onChange={(event) => setDraft((current) => ({ ...current, notes: event.target.value }))} placeholder="Detalle interno para RRHH" />
+        </label>
+      </div>
+
+      <div className="payroll-actions">
+        <button type="button" disabled={saving} onClick={() => onSave(draft, 'Borrador')}>Guardar</button>
+        <button type="button" disabled={saving} onClick={() => onSave(draft, 'Listo para pago')}>Listo</button>
+        <button type="button" disabled={saving} onClick={() => onSave(draft, 'Pendiente pago')}>Pendiente</button>
+        <button type="button" disabled={saving || !canPay} onClick={() => onSave(draft, 'Pagado')}>Pagar</button>
+      </div>
+    </article>
   );
 }
 
