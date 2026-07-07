@@ -12,7 +12,7 @@ const human = new Human({
       modelPath: 'blazeface.json',
       maxDetected: 1,
       minConfidence: 0.55,
-      minSize: 80,
+      minSize: 60,
       rotation: true,
     },
     mesh: { enabled: true, modelPath: 'facemesh.json' },
@@ -56,10 +56,7 @@ export async function analyzeFace(input) {
     real: normalizeScore(face.real),
     live: normalizeScore(face.live),
     rotation: face.rotation?.angle || null,
-    size: face.boxRaw ? {
-      width: Number(face.boxRaw[2] || 0),
-      height: Number(face.boxRaw[3] || 0),
-    } : null,
+    size: readFaceSize(face),
     gestures: (result.gesture || [])
       .filter((item) => Object.prototype.hasOwnProperty.call(item, 'face'))
       .map((item) => item.gesture),
@@ -118,7 +115,7 @@ export function findBestFaceMatch(descriptor, profiles, threshold = 0.52) {
   if (!best) return null;
   const second = matches[1] || null;
   const margin = second ? best.similarity - second.similarity : 1;
-  const accepted = best.similarity >= threshold && (best.similarity >= 0.62 || margin >= 0.025);
+  const accepted = best.similarity >= threshold && (best.similarity >= 0.6 || margin >= 0.02);
   return { ...best, accepted, threshold, margin, secondSimilarity: second?.similarity || 0 };
 }
 
@@ -158,10 +155,7 @@ export function challengeCompleted(challenge, analysis) {
 export function biometricQuality(analysis, options = {}) {
   const { requireAntiSpoof = false } = options;
   if (!analysis.detected || !analysis.descriptor) return { valid: false, reason: 'Rostro no detectado' };
-  if (analysis.score < 0.42) return { valid: false, reason: 'Acercate un poco mas a la camara' };
-  if (analysis.size && (analysis.size.width < 82 || analysis.size.height < 82)) {
-    return { valid: false, reason: 'Acercate un poco mas para capturar mejor el rostro.' };
-  }
+  if (analysis.score < 0.32) return { valid: false, reason: 'Mira de frente y mejora la luz para capturar el rostro.' };
 
   if (requireAntiSpoof) {
     const real = analysis.real ?? 1;
@@ -172,6 +166,20 @@ export function biometricQuality(analysis, options = {}) {
   }
 
   return { valid: true };
+}
+
+function readFaceSize(face) {
+  const box = face.box || face.boxRaw;
+  if (!box) return null;
+  if (Array.isArray(box)) {
+    const width = Number(box[2] || 0);
+    const height = Number(box[3] || 0);
+    return { width, height };
+  }
+  return {
+    width: Number(box.width || box.w || 0),
+    height: Number(box.height || box.h || 0),
+  };
 }
 
 function extractProfileDescriptors(descriptor) {

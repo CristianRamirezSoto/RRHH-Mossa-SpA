@@ -14,6 +14,7 @@ export function AttendanceScanner({ markType = 'entry', onRegistered, terminalEn
   const runningRef = useRef(false);
   const pausedRef = useRef(false);
   const profilesRef = useRef([]);
+  const candidateRef = useRef({ employeeId: '', hits: 0, similarity: 0 });
   const [status, setStatus] = useState('idle');
   const [result, setResult] = useState(null);
   const actionLabel = markType === 'exit' ? 'salida' : 'entrada';
@@ -22,6 +23,7 @@ export function AttendanceScanner({ markType = 'entry', onRegistered, terminalEn
   const resetScanner = useCallback((delay = 3500) => {
     window.setTimeout(() => {
       pausedRef.current = false;
+      candidateRef.current = { employeeId: '', hits: 0, similarity: 0 };
       setResult(null);
       setDetail(`Ubicate frente a la camara para registrar tu ${actionLabel}.`);
       setStatus('idle');
@@ -80,6 +82,7 @@ export function AttendanceScanner({ markType = 'entry', onRegistered, terminalEn
       const analysis = await analyzeFace(video);
       if (!analysis.detected) {
         setStatus('idle');
+        candidateRef.current = { employeeId: '', hits: 0, similarity: 0 };
         setDetail(`Ubicate frente a la camara para registrar tu ${actionLabel}.`);
         return;
       }
@@ -88,6 +91,7 @@ export function AttendanceScanner({ markType = 'entry', onRegistered, terminalEn
       setDetail('Rostro detectado. Verificando calidad...');
       const quality = biometricQuality(analysis, { requireAntiSpoof: false });
       if (!quality.valid) {
+        candidateRef.current = { employeeId: '', hits: 0, similarity: 0 };
         setDetail(quality.reason);
         return;
       }
@@ -96,16 +100,28 @@ export function AttendanceScanner({ markType = 'entry', onRegistered, terminalEn
       setDetail('Comparando tu rostro de forma local y segura...');
       const match = findBestFaceMatch(analysis.descriptor, profilesRef.current);
       if (!match?.accepted) {
+        candidateRef.current = { employeeId: '', hits: 0, similarity: 0 };
         const percent = match ? Math.round(match.similarity * 100) : 0;
         const margin = match ? Math.round((match.margin || 0) * 100) : 0;
         throw new Error(`Rostro no reconocido (${percent}%, margen ${margin}%). Reenrola con buena luz y con los lentes habituales si los usa.`);
       }
 
+      const previous = candidateRef.current;
+      const hits = previous.employeeId === match.employeeId ? previous.hits + 1 : 1;
+      const stableSimilarity = Math.max(previous.employeeId === match.employeeId ? previous.similarity : 0, match.similarity);
+      candidateRef.current = { employeeId: match.employeeId, hits, similarity: stableSimilarity };
+
+      if (hits < 2 && stableSimilarity < 0.68) {
+        setStatus('verifying');
+        setDetail(`Coincidencia probable: ${match.employeeName} (${Math.round(match.similarity * 100)}%). Confirmando...`);
+        return;
+      }
+
       setStatus('confirmed');
       setResult({ employeeName: match.employeeName });
-      setDetail(`Coincidencia biometrica: ${Math.round(match.similarity * 100)}%`);
+      setDetail(`Coincidencia biometrica: ${Math.round(stableSimilarity * 100)}%`);
 
-      const mark = await registerAttendance(match.employeeId, match.similarity, markType);
+      const mark = await registerAttendance(match.employeeId, stableSimilarity, markType);
       const completedResult = {
         ...mark,
         employeeName: match.employeeName,
@@ -114,9 +130,11 @@ export function AttendanceScanner({ markType = 'entry', onRegistered, terminalEn
       setStatus('registered');
       pausedRef.current = true;
       onRegistered?.(completedResult);
+      candidateRef.current = { employeeId: '', hits: 0, similarity: 0 };
       resetScanner(4300);
     } catch (error) {
       setResult(null);
+      candidateRef.current = { employeeId: '', hits: 0, similarity: 0 };
       setStatus('error');
       setDetail(normalizeRecognitionError(error));
       pausedRef.current = true;
@@ -127,7 +145,7 @@ export function AttendanceScanner({ markType = 'entry', onRegistered, terminalEn
   }, [actionLabel, markType, onRegistered, resetScanner, terminalEnabled]);
 
   useEffect(() => {
-    const timer = window.setInterval(processCamera, 900);
+    const timer = window.setInterval(processCamera, 550);
     return () => window.clearInterval(timer);
   }, [processCamera]);
 
