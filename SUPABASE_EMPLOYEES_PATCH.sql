@@ -7,6 +7,7 @@ alter table public.employees add column if not exists work_location text default
 alter table public.employees add column if not exists schedule_end text default '18:00';
 alter table public.employees add column if not exists weekly_hours numeric not null default 44;
 alter table public.employees add column if not exists supervisor text default '';
+alter table public.employees add column if not exists supervisor_whatsapp text default '';
 alter table public.employees add column if not exists emergency_contact text default '';
 alter table public.employees add column if not exists emergency_phone text default '';
 

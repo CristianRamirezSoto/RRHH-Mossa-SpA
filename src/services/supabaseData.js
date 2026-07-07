@@ -14,6 +14,7 @@ const tableMap = {
     scheduleEnd: 'schedule_end',
     weeklyHours: 'weekly_hours',
     supervisor: 'supervisor',
+    supervisorWhatsapp: 'supervisor_whatsapp',
     emergencyContact: 'emergency_contact',
     emergencyPhone: 'emergency_phone',
     startDate: 'start_date',

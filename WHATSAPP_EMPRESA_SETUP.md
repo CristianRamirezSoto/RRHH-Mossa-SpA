@@ -6,8 +6,25 @@ El envio corporativo no debe salir desde un WhatsApp personal. Para eso se usa W
 
 1. Un colaborador crea una solicitud en la app.
 2. La solicitud queda guardada en Supabase (`hr_requests`).
-3. La app llama a la funcion `send-whatsapp-request`.
-4. La funcion usa el token seguro de Meta y envia el mensaje desde el numero empresarial.
+3. La app toma el `WhatsApp supervisor` desde la ficha del colaborador.
+4. La app llama a la funcion `send-whatsapp-request`.
+5. La funcion usa el token seguro de Meta y envia el mensaje desde el numero empresarial.
+
+## Destinatario por supervisor
+
+Cada trabajador puede tener un supervisor y un numero WhatsApp de supervisor en su ficha:
+
+- `supervisor`
+- `supervisor_whatsapp`
+
+Cuando se crea una solicitud:
+
+1. Si el colaborador tiene `supervisor_whatsapp`, el aviso va a ese numero.
+2. Si no tiene `supervisor_whatsapp`, se usa `WHATSAPP_RECIPIENT_PHONE` como numero general de RRHH.
+
+Formato recomendado para Chile:
+
+`569XXXXXXXX`
 
 ## Credenciales necesarias
 

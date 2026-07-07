@@ -63,6 +63,8 @@ export function Requests() {
         employeeId: selectedEmployee.id,
         employeeName: selectedEmployee.name,
         ownerEmail: selectedEmployee.email.toLowerCase(),
+        supervisor: selectedEmployee.supervisor || '',
+        supervisorWhatsapp: selectedEmployee.supervisorWhatsapp || '',
         type: form.type,
         fromDate: form.fromDate,
         toDate: form.toDate,

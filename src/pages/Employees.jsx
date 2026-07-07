@@ -12,6 +12,7 @@ const emptyForm = {
   position: '',
   area: '',
   supervisor: '',
+  supervisorWhatsapp: '',
   workLocation: '',
   contractType: 'Indefinido',
   startDate: '',
@@ -277,6 +278,7 @@ export function Employees() {
               <Field label="Cargo" name="position" value={form.position} setForm={updateForm} />
               <Field label="Area" name="area" value={form.area} setForm={updateForm} />
               <Field label="Supervisor" name="supervisor" value={form.supervisor} setForm={updateForm} />
+              <Field label="WhatsApp supervisor" name="supervisorWhatsapp" value={form.supervisorWhatsapp} setForm={updateForm} />
               <Field label="Sede / ubicacion" name="workLocation" value={form.workLocation} setForm={updateForm} />
               <SelectField label="Tipo de contrato" name="contractType" value={form.contractType} setForm={updateForm} options={contractOptions} />
               <MoneyField label="Sueldo base" name="baseSalary" value={form.baseSalary} setForm={updateForm} />

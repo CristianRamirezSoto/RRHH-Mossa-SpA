@@ -41,7 +41,8 @@ Deno.serve(async (req) => {
 });
 
 function buildWhatsAppPayload(request) {
-  const to = normalizePhone(requiredEnv('WHATSAPP_RECIPIENT_PHONE'));
+  const to = normalizePhone(request.supervisorWhatsapp || Deno.env.get('WHATSAPP_RECIPIENT_PHONE') || '');
+  if (!to) throw new Error('Falta numero de supervisor o WHATSAPP_RECIPIENT_PHONE.');
   const templateName = Deno.env.get('WHATSAPP_TEMPLATE_NAME');
   const languageCode = Deno.env.get('WHATSAPP_TEMPLATE_LANGUAGE') || 'es_CL';
 
@@ -85,11 +86,12 @@ function buildPlainTextMessage(request) {
     'Nueva solicitud RRHH Mossaspa',
     `Tipo: ${request.type}`,
     `Trabajador: ${request.employeeName}`,
+    request.supervisor ? `Supervisor: ${request.supervisor}` : null,
     `Desde: ${formatDate(request.fromDate)}`,
     `Hasta: ${formatDate(request.toDate)}`,
     `Detalle: ${request.detail || 'Sin detalle'}`,
     'Estado: Pendiente',
-  ].join('\n');
+  ].filter(Boolean).join('\n');
 }
 
 function textParam(text) {
