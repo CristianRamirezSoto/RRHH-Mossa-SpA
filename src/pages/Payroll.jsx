@@ -11,6 +11,8 @@ export function Payroll() {
   const [payroll, setPayroll] = useState([]);
   const [period, setPeriod] = useState(currentPeriod());
   const [filter, setFilter] = useState('Todos');
+  const [search, setSearch] = useState('');
+  const [areaFilter, setAreaFilter] = useState('Todas');
   const [message, setMessage] = useState('');
   const [messageTone, setMessageTone] = useState('');
   const [savingId, setSavingId] = useState('');
@@ -44,10 +46,31 @@ export function Payroll() {
     });
   }, [employees, payroll, period]);
 
-  const visibleRows = useMemo(
-    () => periodRows.filter((row) => filter === 'Todos' || row.status === filter),
-    [periodRows, filter]
+  const visibleRows = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    return periodRows.filter((row) => {
+      const matchesStatus = filter === 'Todos' || row.status === filter;
+      const matchesArea = areaFilter === 'Todas' || row.employee.area === areaFilter;
+      const matchesSearch = !term || [
+        row.employee.name,
+        row.employee.rut,
+        row.employee.email,
+        row.employee.position,
+        row.employee.area,
+      ].some((value) => value?.toLowerCase().includes(term));
+      return matchesStatus && matchesArea && matchesSearch;
+    });
+  }, [periodRows, filter, search, areaFilter]);
+
+  const areaOptions = useMemo(
+    () => ['Todas', ...Array.from(new Set(periodRows.map((row) => row.employee.area).filter(Boolean))).sort()],
+    [periodRows]
   );
+
+  const statusCounts = useMemo(() => Object.fromEntries(payrollStatuses.map((status) => [
+    status,
+    status === 'Todos' ? periodRows.length : periodRows.filter((row) => row.status === status).length,
+  ])), [periodRows]);
 
   const totals = useMemo(() => periodRows.reduce((acc, row) => {
     acc.gross += row.baseSalary + row.bonus;
@@ -115,7 +138,7 @@ export function Payroll() {
   }
 
   return (
-    <div className="page">
+    <div className="page payroll-page">
       <header className="page-header">
         <div>
           <p className="eyebrow">Remuneraciones</p>
@@ -148,16 +171,32 @@ export function Payroll() {
         </span>
       </section>
 
+      <section className="payroll-filters-panel">
+        <label className="search-box payroll-search">
+          <Icon name="search" />
+          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar trabajador, RUT, cargo o area" />
+        </label>
+        <label className="payroll-filter-field">
+          <span>Area</span>
+          <select value={areaFilter} onChange={(event) => setAreaFilter(event.target.value)}>
+            {areaOptions.map((area) => <option key={area}>{area}</option>)}
+          </select>
+        </label>
+        <div className="payroll-status-filter">
+          {payrollStatuses.map((item) => (
+            <button key={item} type="button" className={filter === item ? 'active' : ''} onClick={() => setFilter(item)}>
+              <span>{item}</span>
+              <strong>{statusCounts[item] || 0}</strong>
+            </button>
+          ))}
+        </div>
+      </section>
+
       <section className="panel payroll-panel">
-        <div className="panel-heading attendance-records-heading">
+        <div className="panel-heading">
           <div>
             <h2>Nomina del periodo</h2>
-            <p>{visibleRows.length} registros visibles</p>
-          </div>
-          <div className="filter-tabs">
-            {payrollStatuses.map((item) => (
-              <button key={item} type="button" className={filter === item ? 'active' : ''} onClick={() => setFilter(item)}>{item}</button>
-            ))}
+            <p>{visibleRows.length} registros visibles de {periodRows.length} trabajadores activos</p>
           </div>
         </div>
         <div className="payroll-list">
@@ -180,17 +219,19 @@ function PayrollRow({ row, onSave, saving }) {
 
   return (
     <article className="payroll-card">
-      <div className="payroll-card-header">
-        <div className="employee-cell">
-          <span className="avatar avatar-soft">{initials(draft.employee.name)}</span>
-          <span><strong>{draft.employee.name}</strong><small>{draft.employee.position || 'Cargo sin definir'}</small></span>
+      <div className="payroll-card-top">
+        <div className="payroll-card-header">
+          <div className="employee-cell">
+            <span className="avatar avatar-soft">{initials(draft.employee.name)}</span>
+            <span><strong>{draft.employee.name}</strong><small>{draft.employee.position || 'Cargo sin definir'}{draft.employee.area ? ` - ${draft.employee.area}` : ''}</small></span>
+          </div>
+          <span className={`payroll-status payroll-${slug(draft.status)}`}>{draft.status}</span>
         </div>
-        <span className={`payroll-status payroll-${slug(draft.status)}`}>{draft.status}</span>
-      </div>
 
-      <div className="payroll-net-box">
-        <span>Liquido a pagar</span>
-        <strong>{formatMoney(net)}</strong>
+        <div className="payroll-net-box">
+          <span>Liquido a pagar</span>
+          <strong>{formatMoney(net)}</strong>
+        </div>
       </div>
 
       <div className="payroll-edit-grid">
@@ -225,7 +266,7 @@ function PayrollRow({ row, onSave, saving }) {
 
       <div className="payroll-actions">
         <button type="button" disabled={saving} onClick={() => onSave(draft, 'Borrador')}>Guardar</button>
-        <button type="button" disabled={saving} onClick={() => onSave(draft, 'Listo para pago')}>Listo</button>
+        <button type="button" disabled={saving} onClick={() => onSave(draft, 'Listo para pago')}>Listo pago</button>
         <button type="button" disabled={saving} onClick={() => onSave(draft, 'Pendiente pago')}>Pendiente</button>
         <button type="button" disabled={saving || !canPay} onClick={() => onSave(draft, 'Pagado')}>Pagar</button>
       </div>
