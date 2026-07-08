@@ -1,7 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Icon } from '../components/AppLayout';
 import { subscribeRows, upsertRow } from '../services/supabaseData';
+import {
+  createPayrollReceiptPath,
+  deleteDocumentFile,
+  getDocumentDownloadUrl,
+  uploadDocumentFile,
+} from '../services/documentStorage';
 
 const payrollStatuses = ['Todos', 'Borrador', 'Listo para pago', 'Pendiente pago', 'Pagado'];
 
@@ -41,6 +47,14 @@ export function Payroll() {
         paymentReference: record?.paymentReference || '',
         notes: record?.notes || '',
         paidAt: record?.paidAt || '',
+        receiptFileName: record?.receiptFileName || '',
+        receiptStoragePath: record?.receiptStoragePath || '',
+        receiptContentType: record?.receiptContentType || '',
+        receiptSize: record?.receiptSize || 0,
+        preparedAt: record?.preparedAt || '',
+        preparedBy: record?.preparedBy || '',
+        approvedAt: record?.approvedAt || '',
+        approvedBy: record?.approvedBy || '',
         updatedAt: record?.updatedAt || '',
       };
     });
@@ -85,12 +99,35 @@ export function Payroll() {
     return acc;
   }, { gross: 0, deductions: 0, net: 0, ready: 0, pending: 0, paid: 0, drafts: 0, pendingAmount: 0, paidAmount: 0 }), [periodRows]);
 
-  async function saveRow(row, status = row.status) {
+  async function saveRow(row, status = row.status, receiptFile = null) {
     const rowId = `${period}_${row.employee.id}`;
+    const validation = validatePayroll(row, status, receiptFile);
+    if (validation) {
+      setMessage(validation);
+      setMessageTone('error');
+      return false;
+    }
     setSavingId(rowId);
     setMessage('');
     setMessageTone('');
+    let uploadedPath = '';
     try {
+      const now = new Date().toISOString();
+      const receipt = {};
+      if (receiptFile) {
+        uploadedPath = createPayrollReceiptPath({
+          employeeId: row.employee.id,
+          payrollId: rowId,
+          fileName: receiptFile.name,
+        });
+        await uploadDocumentFile(uploadedPath, receiptFile);
+        Object.assign(receipt, {
+          receiptFileName: receiptFile.name,
+          receiptStoragePath: uploadedPath,
+          receiptContentType: receiptFile.type || 'application/octet-stream',
+          receiptSize: receiptFile.size,
+        });
+      }
       await upsertRow('payroll', {
         id: rowId,
         period,
@@ -106,17 +143,45 @@ export function Payroll() {
         paymentDate: row.paymentDate || suggestedPaymentDate(period),
         paymentReference: status === 'Pagado' ? row.paymentReference.trim() : row.paymentReference,
         notes: row.notes.trim(),
-        paidAt: status === 'Pagado' ? new Date().toISOString() : row.paidAt || '',
+        paidAt: status === 'Pagado' ? now : row.paidAt || '',
+        preparedAt: row.preparedAt || now,
+        preparedBy: row.preparedBy || user.id,
+        approvedAt: ['Listo para pago', 'Pendiente pago', 'Pagado'].includes(status) ? row.approvedAt || now : row.approvedAt || '',
+        approvedBy: ['Listo para pago', 'Pendiente pago', 'Pagado'].includes(status) ? row.approvedBy || user.id : row.approvedBy || '',
+        receiptFileName: row.receiptFileName || '',
+        receiptStoragePath: row.receiptStoragePath || '',
+        receiptContentType: row.receiptContentType || '',
+        receiptSize: row.receiptSize || null,
+        ...receipt,
         updatedBy: user.id,
-        updatedAt: new Date().toISOString(),
+        updatedAt: now,
       });
+      if (receiptFile && row.receiptStoragePath) {
+        await deleteDocumentFile(row.receiptStoragePath).catch(() => {});
+      }
       setMessage(status === 'Pagado' ? 'Pago registrado correctamente.' : 'Remuneracion guardada correctamente.');
       setMessageTone('success');
+      return true;
     } catch (error) {
-      setMessage(`No se pudo guardar remuneracion: ${error.message}`);
+      if (uploadedPath) await deleteDocumentFile(uploadedPath).catch(() => {});
+      const needsPatch = /receipt_|prepared_|approved_/i.test(error.message);
+      setMessage(needsPatch
+        ? 'Falta actualizar remuneraciones en Supabase. Ejecuta SUPABASE_PAYROLL_PATCH.sql completo y vuelve a intentar.'
+        : `No se pudo guardar remuneracion: ${error.message}`);
       setMessageTone('error');
+      return false;
     } finally {
       setSavingId('');
+    }
+  }
+
+  async function downloadReceipt(row) {
+    try {
+      const url = await getDocumentDownloadUrl(row.receiptStoragePath);
+      window.open(url, '_blank', 'noopener');
+    } catch (error) {
+      setMessage(`No se pudo descargar el comprobante: ${error.message}`);
+      setMessageTone('error');
     }
   }
 
@@ -132,6 +197,7 @@ export function Payroll() {
       Estado: row.status,
       'Fecha pago': row.paymentDate || '',
       Referencia: row.paymentReference || '',
+      Comprobante: row.receiptFileName || '',
       Observaciones: row.notes || '',
     }));
     downloadExcelLikeFile(`remuneraciones-${period}.xls`, rows);
@@ -164,7 +230,7 @@ export function Payroll() {
       <section className="payroll-alert-strip">
         <div>
           <strong>{totals.ready + totals.pending} pagos requieren accion</strong>
-          <span>{totals.drafts} en borrador · {totals.ready} listos · {totals.pending} pendientes · {totals.paid} pagados</span>
+          <span>{totals.drafts} en borrador - {totals.ready} listos - {totals.pending} pendientes - {totals.paid} pagados</span>
         </div>
         <span className={totals.ready + totals.pending ? 'payroll-risk warning' : 'payroll-risk ok'}>
           {totals.ready + totals.pending ? 'Revisar antes del cierre' : 'Periodo sin pendientes'}
@@ -201,7 +267,14 @@ export function Payroll() {
         </div>
         <div className="payroll-list">
           {visibleRows.map((row) => (
-            <PayrollRow key={row.employee.id} row={row} onSave={saveRow} saving={savingId === `${period}_${row.employee.id}`} />
+            <PayrollRow
+              key={row.employee.id}
+              row={row}
+              period={period}
+              onSave={saveRow}
+              onDownloadReceipt={downloadReceipt}
+              saving={savingId === `${period}_${row.employee.id}`}
+            />
           ))}
         </div>
         {!visibleRows.length && <div className="empty-state large"><Icon name="users" size={30} /><p>No hay colaboradores para este filtro.</p></div>}
@@ -211,11 +284,25 @@ export function Payroll() {
   );
 }
 
-function PayrollRow({ row, onSave, saving }) {
+function PayrollRow({ row, period, onSave, onDownloadReceipt, saving }) {
   const [draft, setDraft] = useState(row);
+  const [receiptFile, setReceiptFile] = useState(null);
+  const fileInput = useRef(null);
   useEffect(() => setDraft(row), [row]);
   const net = draft.baseSalary + draft.bonus - draft.deductions;
   const canPay = draft.status === 'Listo para pago' || draft.status === 'Pendiente pago';
+  const isPaid = draft.status === 'Pagado';
+  const receiptReady = Boolean(receiptFile || draft.receiptStoragePath);
+  const requirements = [
+    { label: 'Montos revisados', ready: net > 0 },
+    { label: 'Referencia de pago', ready: Boolean(draft.paymentReference.trim()) },
+    { label: 'Comprobante adjunto', ready: receiptReady },
+  ];
+
+  async function submit(status) {
+    const saved = await onSave(draft, status, receiptFile);
+    if (saved) setReceiptFile(null);
+  }
 
   return (
     <article className="payroll-card">
@@ -237,49 +324,113 @@ function PayrollRow({ row, onSave, saving }) {
       <div className="payroll-edit-grid">
         <label>
           <span>Sueldo base</span>
-          <MoneyInput value={draft.baseSalary} onChange={(value) => setDraft((current) => ({ ...current, baseSalary: value }))} />
+          <MoneyInput value={draft.baseSalary} disabled={isPaid} onChange={(value) => setDraft((current) => ({ ...current, baseSalary: value }))} />
         </label>
         <label>
           <span>Bonos</span>
-          <MoneyInput value={draft.bonus} onChange={(value) => setDraft((current) => ({ ...current, bonus: value }))} />
+          <MoneyInput value={draft.bonus} disabled={isPaid} onChange={(value) => setDraft((current) => ({ ...current, bonus: value }))} />
         </label>
         <label>
           <span>Descuentos</span>
-          <MoneyInput value={draft.deductions} onChange={(value) => setDraft((current) => ({ ...current, deductions: value }))} />
+          <MoneyInput value={draft.deductions} disabled={isPaid} onChange={(value) => setDraft((current) => ({ ...current, deductions: value }))} />
         </label>
       </div>
 
       <div className="payroll-payment-panel">
         <label>
           <span>Fecha de pago</span>
-          <input type="date" value={draft.paymentDate || ''} onChange={(event) => setDraft((current) => ({ ...current, paymentDate: event.target.value }))} />
+          <input disabled={isPaid} type="date" value={draft.paymentDate || ''} onChange={(event) => setDraft((current) => ({ ...current, paymentDate: event.target.value }))} />
         </label>
         <label>
           <span>Referencia</span>
-          <input value={draft.paymentReference} onChange={(event) => setDraft((current) => ({ ...current, paymentReference: event.target.value }))} placeholder="Transferencia, folio o comprobante" />
+          <input disabled={isPaid} value={draft.paymentReference} onChange={(event) => setDraft((current) => ({ ...current, paymentReference: event.target.value }))} placeholder="Transferencia, folio o comprobante" />
         </label>
         <label className="payroll-note-field">
           <span>Observacion</span>
-          <input value={draft.notes} onChange={(event) => setDraft((current) => ({ ...current, notes: event.target.value }))} placeholder="Detalle interno para RRHH" />
+          <input disabled={isPaid} value={draft.notes} onChange={(event) => setDraft((current) => ({ ...current, notes: event.target.value }))} placeholder="Detalle interno para RRHH" />
         </label>
       </div>
 
+      <div className="payroll-close-panel">
+        <div className="payroll-checklist">
+          {requirements.map((item) => (
+            <span key={item.label} className={item.ready ? 'ready' : ''}>
+              <Icon name={item.ready ? 'check' : 'clock'} size={14} /> {item.label}
+            </span>
+          ))}
+        </div>
+        <div className="payroll-receipt">
+          <input
+            ref={fileInput}
+            type="file"
+            hidden
+            accept=".pdf,.png,.jpg,.jpeg,.webp"
+            onChange={(event) => setReceiptFile(event.target.files?.[0] || null)}
+          />
+          <button type="button" disabled={saving || isPaid} onClick={() => fileInput.current?.click()}>
+            <Icon name="upload" size={15} /> {receiptFile ? receiptFile.name : draft.receiptFileName || 'Adjuntar comprobante'}
+          </button>
+          {draft.receiptStoragePath && !receiptFile && (
+            <button type="button" onClick={() => onDownloadReceipt(draft)}>
+              <Icon name="download" size={15} /> Ver
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="payroll-trace">
+        <span>Preparado: {formatTimestamp(draft.preparedAt)}</span>
+        <span>Aprobado: {formatTimestamp(draft.approvedAt)}</span>
+        <span>Pagado: {formatTimestamp(draft.paidAt)}</span>
+      </div>
+
       <div className="payroll-actions">
-        <button type="button" disabled={saving} onClick={() => onSave(draft, 'Borrador')}>Guardar</button>
-        <button type="button" disabled={saving} onClick={() => onSave(draft, 'Listo para pago')}>Listo pago</button>
-        <button type="button" disabled={saving} onClick={() => onSave(draft, 'Pendiente pago')}>Pendiente</button>
-        <button type="button" disabled={saving || !canPay} onClick={() => onSave(draft, 'Pagado')}>Pagar</button>
+        {!isPaid && <button type="button" disabled={saving} onClick={() => submit('Borrador')}>Guardar</button>}
+        {!isPaid && <button type="button" disabled={saving} onClick={() => submit('Listo para pago')}>Listo pago</button>}
+        {!isPaid && <button type="button" disabled={saving} onClick={() => submit('Pendiente pago')}>Pendiente</button>}
+        {!isPaid && <button type="button" disabled={saving || !canPay} onClick={() => submit('Pagado')}>Pagar</button>}
+        <button type="button" className="payroll-slip-button" onClick={() => printPayrollSlip(draft, period, net)}>
+          <Icon name="file" size={15} /> Liquidacion
+        </button>
       </div>
     </article>
   );
 }
 
-function MoneyInput({ value, onChange }) {
-  return <input className="money-input" type="number" min="0" step="1000" value={value} onChange={(event) => onChange(Number(event.target.value || 0))} />;
+function MoneyInput({ value, onChange, disabled = false }) {
+  return <input className="money-input" disabled={disabled} type="number" min="0" step="1000" value={value} onChange={(event) => onChange(Number(event.target.value || 0))} />;
 }
 
 function PayrollStat({ icon, label, value, tone = '' }) {
-  return <article className="stat-card"><div className={`stat-icon ${tone === 'warning' ? 'tone-yellow' : 'tone-green'}`}><Icon name={icon} /></div><div><p>{label}</p><strong className="money-stat">{value}</strong></div></article>;
+  return <article className="stat-card"><div className={`stat-icon ${tone === 'warning' ? 'tone-amber' : 'tone-green'}`}><Icon name={icon} /></div><div><p>{label}</p><strong className="money-stat">{value}</strong></div></article>;
+}
+
+function validatePayroll(row, status, receiptFile) {
+  const net = Number(row.baseSalary) + Number(row.bonus) - Number(row.deductions);
+  if (row.baseSalary < 0 || row.bonus < 0 || row.deductions < 0) return 'Los montos no pueden ser negativos.';
+  if (net <= 0) return 'El liquido a pagar debe ser mayor que cero.';
+  if (status === 'Pagado' && !row.paymentDate) return 'Indica la fecha efectiva del pago.';
+  if (status === 'Pagado' && !row.paymentReference.trim()) return 'Agrega el folio o referencia antes de registrar el pago.';
+  if (status === 'Pagado' && !receiptFile && !row.receiptStoragePath) return 'Adjunta el comprobante antes de registrar el pago.';
+  if (receiptFile && receiptFile.size > 15 * 1024 * 1024) return 'El comprobante no puede superar 15 MB.';
+  return '';
+}
+
+function printPayrollSlip(row, period, net) {
+  const popup = window.open('', '_blank', 'width=820,height=900');
+  if (!popup) return;
+  const employee = row.employee;
+  const content = `<!doctype html><html><head><meta charset="utf-8"><title>Liquidacion ${escapeHtml(employee.name)}</title>
+  <style>body{font-family:Arial,sans-serif;color:#17372c;margin:42px}header{border-bottom:3px solid #247252;padding-bottom:18px;margin-bottom:26px}h1{margin:0 0 6px;font-size:25px}p{color:#64776e}.meta{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px}.meta div,.total{padding:14px;border:1px solid #dce7e1;border-radius:8px}.meta span,th{font-size:11px;text-transform:uppercase;color:#71827a}strong{display:block;margin-top:5px}table{width:100%;border-collapse:collapse}th,td{padding:13px;border-bottom:1px solid #dce7e1;text-align:left}td:last-child,th:last-child{text-align:right}.total{margin-top:24px;text-align:right;background:#eff8f3}.total strong{font-size:24px}.signatures{display:grid;grid-template-columns:1fr 1fr;gap:70px;margin-top:90px}.signature{border-top:1px solid #51685e;text-align:center;padding-top:8px;font-size:12px}@media print{body{margin:20mm}}</style>
+  </head><body><header><h1>Mossaspa</h1><p>Liquidacion de remuneraciones - ${escapeHtml(formatPeriod(period))}</p></header>
+  <section class="meta"><div><span>Trabajador</span><strong>${escapeHtml(employee.name)}</strong></div><div><span>RUT</span><strong>${escapeHtml(employee.rut || 'No informado')}</strong></div><div><span>Cargo</span><strong>${escapeHtml(employee.position || 'No informado')}</strong></div><div><span>Area</span><strong>${escapeHtml(employee.area || 'No informada')}</strong></div></section>
+  <table><thead><tr><th>Concepto</th><th>Monto</th></tr></thead><tbody><tr><td>Sueldo base</td><td>${formatMoney(row.baseSalary)}</td></tr><tr><td>Bonos</td><td>${formatMoney(row.bonus)}</td></tr><tr><td>Descuentos</td><td>-${formatMoney(row.deductions)}</td></tr></tbody></table>
+  <div class="total"><span>Liquido a pagar</span><strong>${formatMoney(net)}</strong></div>
+  <p>Estado: ${escapeHtml(row.status)}${row.paymentReference ? ` | Referencia: ${escapeHtml(row.paymentReference)}` : ''}</p>
+  <div class="signatures"><div class="signature">Firma empleador</div><div class="signature">Firma trabajador</div></div>
+  <script>window.onload=()=>window.print()</script></body></html>`;
+  popup.document.write(content);
+  popup.document.close();
 }
 
 function downloadExcelLikeFile(fileName, rows) {
@@ -306,6 +457,15 @@ function suggestedPaymentDate(period) {
   return `${year}-${String(month).padStart(2, '0')}-${String(new Date(year, month, 0).getDate()).padStart(2, '0')}`;
 }
 
+function formatPeriod(period = '') {
+  if (!period) return '';
+  const [year, month] = period.split('-').map(Number);
+  return new Intl.DateTimeFormat('es-CL', { month: 'long', year: 'numeric' }).format(new Date(year, month - 1, 1));
+}
+function formatTimestamp(value) {
+  if (!value) return 'Pendiente';
+  return new Intl.DateTimeFormat('es-CL', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value));
+}
 function initials(name = '') { return name.split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || '-'; }
 function formatMoney(value) { return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(Number(value || 0)); }
 function slug(value = '') { return value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '-'); }

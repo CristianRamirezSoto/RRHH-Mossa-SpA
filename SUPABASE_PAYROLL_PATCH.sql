@@ -5,6 +5,14 @@ alter table public.payroll add column if not exists payment_date date;
 alter table public.payroll add column if not exists payment_reference text default '';
 alter table public.payroll add column if not exists notes text default '';
 alter table public.payroll add column if not exists paid_at timestamptz;
+alter table public.payroll add column if not exists receipt_file_name text;
+alter table public.payroll add column if not exists receipt_storage_path text;
+alter table public.payroll add column if not exists receipt_content_type text;
+alter table public.payroll add column if not exists receipt_size bigint;
+alter table public.payroll add column if not exists prepared_at timestamptz;
+alter table public.payroll add column if not exists prepared_by uuid;
+alter table public.payroll add column if not exists approved_at timestamptz;
+alter table public.payroll add column if not exists approved_by uuid;
 
 update public.payroll
 set status = 'Pagado'
@@ -42,6 +50,12 @@ where table_schema = 'public'
     'payment_date',
     'payment_reference',
     'notes',
-    'paid_at'
+    'paid_at',
+    'receipt_file_name',
+    'receipt_storage_path',
+    'prepared_at',
+    'prepared_by',
+    'approved_at',
+    'approved_by'
   )
 order by column_name;

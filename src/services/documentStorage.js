@@ -18,6 +18,11 @@ export function createRequestEvidencePath({ employeeId, requestId, fileName }) {
   return `employees/${employeeId}/requests/${requestId}/${Date.now()}-${safeName}`;
 }
 
+export function createPayrollReceiptPath({ employeeId, payrollId, fileName }) {
+  const safeName = fileName.replace(/[^\w.\-() ]/g, '_');
+  return `employees/${employeeId}/payroll/${payrollId}/${Date.now()}-${safeName}`;
+}
+
 export async function uploadDocumentFile(path, file) {
   ensureSupabaseStorage();
   const { error } = await supabase.storage
