@@ -8,10 +8,17 @@ create table if not exists public.profiles (
   email text not null unique,
   display_name text default '',
   bio text default '',
+  avatar_storage_path text default '',
+  avatar_file_name text default '',
+  avatar_updated_at timestamptz,
   role text not null default 'employee' check (role in ('admin', 'employee')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.profiles add column if not exists avatar_storage_path text default '';
+alter table public.profiles add column if not exists avatar_file_name text default '';
+alter table public.profiles add column if not exists avatar_updated_at timestamptz;
 
 create table if not exists public.employees (
   id uuid primary key default gen_random_uuid(),
@@ -251,7 +258,7 @@ using (id = auth.uid())
 with check (id = auth.uid());
 
 revoke update on public.profiles from authenticated;
-grant update (display_name, bio, updated_at) on public.profiles to authenticated;
+grant update (display_name, bio, avatar_storage_path, avatar_file_name, avatar_updated_at, updated_at) on public.profiles to authenticated;
 
 drop policy if exists "employees_admin_all" on public.employees;
 create policy "employees_admin_all" on public.employees

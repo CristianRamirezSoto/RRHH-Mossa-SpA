@@ -1,12 +1,12 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { getDocumentViewUrl } from '../services/documentStorage';
 
 export function AppLayout() {
   const { user, profile, logout } = useAuth();
   const location = useLocation();
-  if (location.pathname.startsWith('/terminal/')) {
-    return <main className="terminal-shell"><Outlet /></main>;
-  }
+  const [avatarUrl, setAvatarUrl] = useState('');
   const name = profile?.displayName || user?.email?.split('@')[0] || 'Usuario';
   const navItems = [
     ...(profile?.role === 'admin'
@@ -28,6 +28,22 @@ export function AppLayout() {
     { to: '/notificaciones', label: 'Alertas', icon: 'bell' },
     { to: '/perfil', label: 'Mi perfil', icon: 'user' },
   ];
+
+  useEffect(() => {
+    let active = true;
+    if (!profile?.avatarStoragePath) {
+      setAvatarUrl('');
+      return () => { active = false; };
+    }
+    getDocumentViewUrl(profile.avatarStoragePath)
+      .then((url) => active && setAvatarUrl(url))
+      .catch(() => active && setAvatarUrl(''));
+    return () => { active = false; };
+  }, [profile?.avatarStoragePath, profile?.avatarUpdatedAt]);
+
+  if (location.pathname.startsWith('/terminal/')) {
+    return <main className="terminal-shell"><Outlet /></main>;
+  }
 
   return (
     <div className="app-shell">
@@ -56,7 +72,7 @@ export function AppLayout() {
 
         <div className="sidebar-footer">
           <div className="sidebar-user">
-            <span className="avatar">{initials(name)}</span>
+            <span className="avatar sidebar-avatar">{avatarUrl ? <img src={avatarUrl} alt="" /> : initials(name)}</span>
             <span className="sidebar-user-copy">
               <strong>{name}</strong>
               <small>{profile?.role === 'admin' ? 'Administrador' : 'Colaborador'}</small>

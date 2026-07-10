@@ -23,6 +23,11 @@ export function createPayrollReceiptPath({ employeeId, payrollId, fileName }) {
   return `employees/${employeeId}/payroll/${payrollId}/${Date.now()}-${safeName}`;
 }
 
+export function createProfileAvatarPath({ userId, fileName = 'avatar.webp' }) {
+  const safeName = fileName.replace(/[^\w.\-() ]/g, '_');
+  return `profiles/${userId}/avatar/${Date.now()}-${safeName}`;
+}
+
 export async function uploadDocumentFile(path, file) {
   ensureSupabaseStorage();
   const { error } = await supabase.storage
@@ -42,6 +47,16 @@ export async function getDocumentDownloadUrl(path) {
   const { data, error } = await supabase.storage
     .from(DOCUMENT_BUCKET)
     .createSignedUrl(path, 60 * 10, { download: true });
+
+  if (error) throw error;
+  return data.signedUrl;
+}
+
+export async function getDocumentViewUrl(path, expiresIn = 60 * 60) {
+  ensureSupabaseStorage();
+  const { data, error } = await supabase.storage
+    .from(DOCUMENT_BUCKET)
+    .createSignedUrl(path, expiresIn);
 
   if (error) throw error;
   return data.signedUrl;

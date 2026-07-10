@@ -102,6 +102,9 @@ const tableMap = {
   },
   profiles: {
     displayName: 'display_name',
+    avatarStoragePath: 'avatar_storage_path',
+    avatarFileName: 'avatar_file_name',
+    avatarUpdatedAt: 'avatar_updated_at',
     createdAt: 'created_at',
     updatedAt: 'updated_at',
   },
@@ -195,13 +198,18 @@ export function subscribeRows(table, callback, options = {}) {
 
 export async function updateProfile(userId, payload) {
   ensureSupabase();
+  const updatePayload = {
+    display_name: String(payload.displayName || '').slice(0, 60),
+    bio: String(payload.bio || '').slice(0, 280),
+    updated_at: new Date().toISOString(),
+  };
+  if ('avatarStoragePath' in payload) updatePayload.avatar_storage_path = payload.avatarStoragePath || null;
+  if ('avatarFileName' in payload) updatePayload.avatar_file_name = String(payload.avatarFileName || '').slice(0, 160);
+  if ('avatarUpdatedAt' in payload) updatePayload.avatar_updated_at = payload.avatarUpdatedAt || null;
+
   const { data, error } = await supabase
     .from('profiles')
-    .update({
-      display_name: String(payload.displayName || '').slice(0, 60),
-      bio: String(payload.bio || '').slice(0, 280),
-      updated_at: new Date().toISOString(),
-    })
+    .update(updatePayload)
     .eq('id', userId)
     .select('*')
     .single();

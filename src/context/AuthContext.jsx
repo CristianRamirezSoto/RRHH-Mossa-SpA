@@ -13,6 +13,9 @@ function mapProfile(row, user) {
     email,
     displayName: row?.display_name || user?.user_metadata?.display_name || '',
     bio: row?.bio || '',
+    avatarStoragePath: row?.avatar_storage_path || '',
+    avatarFileName: row?.avatar_file_name || '',
+    avatarUpdatedAt: row?.avatar_updated_at || '',
     role: isConfiguredAdmin ? 'admin' : (row?.role || 'employee'),
   };
 }
