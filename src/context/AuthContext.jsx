@@ -3,6 +3,7 @@ import { supabase, supabaseConfigured } from '../supabase';
 
 const AuthContext = createContext(null);
 const ADMIN_EMAIL = (import.meta.env.VITE_ADMIN_EMAIL || 'cramirez@mossaspa.cl').toLowerCase();
+const PROFILE_CACHE_PREFIX = 'rrhh-profile-cache:';
 
 function mapProfile(row, user) {
   if (!row && !user) return null;
@@ -27,6 +28,43 @@ function withTimeout(promise, ms, label) {
       window.setTimeout(() => reject(new Error(`${label} tardo demasiado en responder.`)), ms);
     }),
   ]);
+}
+
+function cacheKey(userId) {
+  return `${PROFILE_CACHE_PREFIX}${userId}`;
+}
+
+function readCachedProfile(user) {
+  if (!user) return null;
+  try {
+    const cached = JSON.parse(window.localStorage.getItem(cacheKey(user.id)) || 'null');
+    if (!cached || cached.id !== user.id) return null;
+    return {
+      ...mapProfile(null, user),
+      ...cached,
+      role: user.email?.toLowerCase() === ADMIN_EMAIL ? 'admin' : (cached.role || 'employee'),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedProfile(profile) {
+  if (!profile?.id) return;
+  try {
+    window.localStorage.setItem(cacheKey(profile.id), JSON.stringify({
+      id: profile.id,
+      email: profile.email,
+      displayName: profile.displayName || '',
+      bio: profile.bio || '',
+      avatarStoragePath: profile.avatarStoragePath || '',
+      avatarFileName: profile.avatarFileName || '',
+      avatarUpdatedAt: profile.avatarUpdatedAt || '',
+      role: profile.role || 'employee',
+    }));
+  } catch {
+    // Cache local opcional; si el navegador lo bloquea, la app sigue funcionando.
+  }
 }
 
 async function ensureProfile(user) {
@@ -78,7 +116,7 @@ export function AuthProvider({ children }) {
       }
 
       if (!active) return;
-      setProfile(mapProfile(null, currentUser));
+      setProfile(readCachedProfile(currentUser) || mapProfile(null, currentUser));
       setLoading(false);
 
       try {
@@ -126,6 +164,10 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
+  useEffect(() => {
+    if (profile?.id) writeCachedProfile(profile);
+  }, [profile]);
+
   const register = async (email, password) => {
     if (!supabaseConfigured || !supabase) throw new Error('Supabase no esta configurado.');
     const { data, error } = await supabase.auth.signUp({
@@ -134,7 +176,7 @@ export function AuthProvider({ children }) {
     });
     if (error) throw error;
     if (data.user) {
-      setProfile(mapProfile(null, data.user));
+      setProfile(readCachedProfile(data.user) || mapProfile(null, data.user));
       window.setTimeout(() => {
         ensureProfile(data.user).then(setProfile).catch((error) => console.warn(error.message));
       }, 0);
