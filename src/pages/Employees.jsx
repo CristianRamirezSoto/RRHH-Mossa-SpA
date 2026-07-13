@@ -12,6 +12,7 @@ const emptyForm = {
   rut: '',
   position: '',
   area: '',
+  isSupervisor: false,
   supervisor: '',
   supervisorWhatsapp: '',
   workLocation: '',
@@ -31,13 +32,13 @@ const emptyForm = {
 const statusOptions = ['Activo', 'Pendiente', 'Inactivo'];
 const contractOptions = ['Indefinido', 'Plazo fijo', 'Part time', 'Honorarios', 'Practica'];
 const positionCatalog = [
-  { name: 'Administrador', area: 'Administracion', level: 'Jefatura', supervisorRequired: false, weeklyHours: 44, scheduleStart: '08:00', scheduleEnd: '18:00' },
-  { name: 'Supervisor', area: 'Operaciones', level: 'Supervisor', supervisorRequired: false, weeklyHours: 44, scheduleStart: '08:00', scheduleEnd: '18:00' },
-  { name: 'Encargado de bodega', area: 'Bodega', level: 'Supervisor', supervisorRequired: true, weeklyHours: 44, scheduleStart: '08:00', scheduleEnd: '18:00' },
-  { name: 'Chofer', area: 'Logistica', level: 'Operativo', supervisorRequired: true, weeklyHours: 44, scheduleStart: '08:00', scheduleEnd: '18:00' },
-  { name: 'Ayudante de obra', area: 'Obra', level: 'Operativo', supervisorRequired: true, weeklyHours: 44, scheduleStart: '08:00', scheduleEnd: '18:00' },
-  { name: 'Asistente area proyectos', area: 'Proyectos', level: 'Administrativo', supervisorRequired: true, weeklyHours: 44, scheduleStart: '08:00', scheduleEnd: '18:00' },
-  { name: 'Otro', area: '', level: 'Operativo', supervisorRequired: true, weeklyHours: 44, scheduleStart: '08:00', scheduleEnd: '18:00' },
+  { name: 'Administrador', area: 'Administracion', level: 'Jefatura', weeklyHours: 44, scheduleStart: '08:00', scheduleEnd: '18:00' },
+  { name: 'Supervisor', area: 'Operaciones', level: 'Supervisor', weeklyHours: 44, scheduleStart: '08:00', scheduleEnd: '18:00' },
+  { name: 'Encargado de bodega', area: 'Bodega', level: 'Operativo senior', weeklyHours: 44, scheduleStart: '08:00', scheduleEnd: '18:00' },
+  { name: 'Chofer', area: 'Logistica', level: 'Operativo', weeklyHours: 44, scheduleStart: '08:00', scheduleEnd: '18:00' },
+  { name: 'Ayudante de obra', area: 'Obra', level: 'Operativo', weeklyHours: 44, scheduleStart: '08:00', scheduleEnd: '18:00' },
+  { name: 'Asistente area proyectos', area: 'Proyectos', level: 'Administrativo', weeklyHours: 44, scheduleStart: '08:00', scheduleEnd: '18:00' },
+  { name: 'Otro', area: '', level: 'Personalizado', weeklyHours: 44, scheduleStart: '08:00', scheduleEnd: '18:00' },
 ];
 const employeeDraftKey = 'rrhh-mossaspa-employee-draft';
 const optionalEmployeeColumns = {
@@ -45,6 +46,7 @@ const optionalEmployeeColumns = {
   work_location: 'workLocation',
   schedule_end: 'scheduleEnd',
   weekly_hours: 'weeklyHours',
+  is_supervisor: 'isSupervisor',
   supervisor: 'supervisor',
   supervisor_whatsapp: 'supervisorWhatsapp',
   emergency_contact: 'emergencyContact',
@@ -133,9 +135,8 @@ export function Employees() {
       setMessage('Nombre y correo son obligatorios.');
       return;
     }
-    const roleRule = positionCatalog.find((item) => item.name === form.position);
-    if (roleRule?.supervisorRequired && (!form.supervisor.trim() || !form.supervisorWhatsapp.trim())) {
-      setMessage('Este cargo requiere supervisor y WhatsApp del supervisor para gestionar solicitudes.');
+    if (!form.isSupervisor && (!form.supervisor.trim() || !form.supervisorWhatsapp.trim())) {
+      setMessage('Si el colaborador no es supervisor, debes asignar su supervisor y WhatsApp para gestionar solicitudes.');
       return;
     }
 
@@ -146,6 +147,7 @@ export function Employees() {
         ...form,
         name: form.name.trim(),
         email: form.email.trim().toLowerCase(),
+        isSupervisor: Boolean(form.isSupervisor),
         weeklyHours: Number(form.weeklyHours || 0),
         baseSalary: Number(form.baseSalary || 0),
         updatedAt: new Date().toISOString(),
@@ -362,14 +364,25 @@ export function Employees() {
               <PositionField value={form.position} setForm={updateForm} />
               {selectedPosition && (
                 <div className="role-logic-card field-wide">
-                  <Icon name={selectedPosition.supervisorRequired ? 'alert' : 'shield'} size={17} />
+                  <Icon name={form.isSupervisor ? 'shield' : 'briefcase'} size={17} />
                   <span>
                     <strong>{selectedPosition.level}</strong>
-                    <small>{selectedPosition.supervisorRequired ? 'Este cargo debe tener supervisor y WhatsApp asociado para solicitudes.' : 'Este cargo puede operar como responsable o supervisor.'}</small>
+                    <small>El cargo solo sugiere area y jornada. La responsabilidad de supervisor se marca aparte.</small>
                   </span>
                 </div>
               )}
               <Field label="Area" name="area" value={form.area} setForm={updateForm} />
+              <label className="consent-field field-wide supervisor-toggle">
+                <input
+                  type="checkbox"
+                  checked={Boolean(form.isSupervisor)}
+                  onChange={(event) => updateForm((current) => ({ ...current, isSupervisor: event.target.checked }))}
+                />
+                <span>
+                  <strong>Puede actuar como supervisor</strong>
+                  <small>Aparecera como opcion para asignar solicitudes, WhatsApp y seguimiento de su equipo.</small>
+                </span>
+              </label>
               <SupervisorField value={form.supervisor} setForm={updateForm} options={supervisorOptions} />
               <Field label="WhatsApp supervisor" name="supervisorWhatsapp" value={form.supervisorWhatsapp} setForm={updateForm} />
               <Field label="Sede / ubicacion" name="workLocation" value={form.workLocation} setForm={updateForm} />
@@ -545,7 +558,11 @@ function buildSupervisorOptions(employees, area, excludeId = '') {
   return employees
     .filter((employee) => employee.status !== 'Inactivo')
     .filter((employee) => employee.id !== excludeId)
-    .filter((employee) => supervisorWords.some((word) => `${employee.position || ''} ${employee.area || ''}`.toLowerCase().includes(word)))
+    .filter((employee) => {
+      if (employee.isSupervisor === true) return true;
+      if (employee.isSupervisor === false) return false;
+      return supervisorWords.some((word) => `${employee.position || ''} ${employee.area || ''}`.toLowerCase().includes(word));
+    })
     .sort((a, b) => {
       const sameAreaA = area && a.area === area ? 0 : 1;
       const sameAreaB = area && b.area === area ? 0 : 1;

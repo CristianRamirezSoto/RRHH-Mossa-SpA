@@ -13,6 +13,7 @@ const tableMap = {
     workLocation: 'work_location',
     scheduleEnd: 'schedule_end',
     weeklyHours: 'weekly_hours',
+    isSupervisor: 'is_supervisor',
     supervisor: 'supervisor',
     supervisorWhatsapp: 'supervisor_whatsapp',
     emergencyContact: 'emergency_contact',

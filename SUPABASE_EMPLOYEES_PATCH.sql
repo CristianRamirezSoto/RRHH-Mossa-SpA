@@ -6,10 +6,19 @@ alter table public.employees add column if not exists contract_type text default
 alter table public.employees add column if not exists work_location text default '';
 alter table public.employees add column if not exists schedule_end text default '18:00';
 alter table public.employees add column if not exists weekly_hours numeric not null default 44;
+alter table public.employees add column if not exists is_supervisor boolean not null default false;
 alter table public.employees add column if not exists supervisor text default '';
 alter table public.employees add column if not exists supervisor_whatsapp text default '';
 alter table public.employees add column if not exists emergency_contact text default '';
 alter table public.employees add column if not exists emergency_phone text default '';
+
+update public.employees
+set is_supervisor = true
+where is_supervisor = false
+  and (
+    lower(coalesce(position, '')) similar to '%(supervisor|jefe|encargado|administrador|gerente)%'
+    or lower(coalesce(area, '')) similar to '%(supervisor|jefe|encargado|administrador|gerente)%'
+  );
 
 notify pgrst, 'reload schema';
 
@@ -24,6 +33,7 @@ where table_schema = 'public'
     'work_location',
     'schedule_end',
     'weekly_hours',
+    'is_supervisor',
     'supervisor',
     'supervisor_whatsapp',
     'emergency_contact',
