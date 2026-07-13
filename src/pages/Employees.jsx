@@ -517,19 +517,26 @@ function SupervisorField({ value, setForm, options }) {
   }
 
   return (
-    <label className="field">
+    <div className="field supervisor-field">
       <span>Supervisor</span>
+      {options.length > 0 && (
+        <select value={options.some((item) => item.name === value) ? value : ''} onChange={(event) => applySupervisor(event.target.value)}>
+          <option value="">Elegir desde colaboradores</option>
+          {options.map((item) => (
+            <option key={`${item.id}-${item.name}`} value={item.name}>
+              {item.name}{item.area ? ` - ${item.area}` : ''}
+            </option>
+          ))}
+        </select>
+      )}
       <input
-        list="employee-supervisor-options"
         name="supervisor"
         value={value}
         onChange={(event) => applySupervisor(event.target.value)}
-        placeholder="Seleccionar o escribir supervisor"
+        placeholder="Nombre del supervisor"
+        autoComplete="off"
       />
-      <datalist id="employee-supervisor-options">
-        {options.map((item) => <option key={`${item.id}-${item.name}`} value={item.name} label={item.area || item.phone} />)}
-      </datalist>
-    </label>
+    </div>
   );
 }
 
