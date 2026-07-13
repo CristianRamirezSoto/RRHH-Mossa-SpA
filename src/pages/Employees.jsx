@@ -30,6 +30,15 @@ const emptyForm = {
 
 const statusOptions = ['Activo', 'Pendiente', 'Inactivo'];
 const contractOptions = ['Indefinido', 'Plazo fijo', 'Part time', 'Honorarios', 'Practica'];
+const positionCatalog = [
+  { name: 'Administrador', area: 'Administracion', level: 'Jefatura', supervisorRequired: false, weeklyHours: 44, scheduleStart: '08:00', scheduleEnd: '18:00' },
+  { name: 'Supervisor', area: 'Operaciones', level: 'Supervisor', supervisorRequired: false, weeklyHours: 44, scheduleStart: '08:00', scheduleEnd: '18:00' },
+  { name: 'Encargado de bodega', area: 'Bodega', level: 'Supervisor', supervisorRequired: true, weeklyHours: 44, scheduleStart: '08:00', scheduleEnd: '18:00' },
+  { name: 'Chofer', area: 'Logistica', level: 'Operativo', supervisorRequired: true, weeklyHours: 44, scheduleStart: '08:00', scheduleEnd: '18:00' },
+  { name: 'Ayudante de obra', area: 'Obra', level: 'Operativo', supervisorRequired: true, weeklyHours: 44, scheduleStart: '08:00', scheduleEnd: '18:00' },
+  { name: 'Asistente area proyectos', area: 'Proyectos', level: 'Administrativo', supervisorRequired: true, weeklyHours: 44, scheduleStart: '08:00', scheduleEnd: '18:00' },
+  { name: 'Otro', area: '', level: 'Operativo', supervisorRequired: true, weeklyHours: 44, scheduleStart: '08:00', scheduleEnd: '18:00' },
+];
 const employeeDraftKey = 'rrhh-mossaspa-employee-draft';
 const optionalEmployeeColumns = {
   contract_type: 'contractType',
@@ -124,6 +133,11 @@ export function Employees() {
       setMessage('Nombre y correo son obligatorios.');
       return;
     }
+    const roleRule = positionCatalog.find((item) => item.name === form.position);
+    if (roleRule?.supervisorRequired && (!form.supervisor.trim() || !form.supervisorWhatsapp.trim())) {
+      setMessage('Este cargo requiere supervisor y WhatsApp del supervisor para gestionar solicitudes.');
+      return;
+    }
 
     setSaving(true);
     setMessage('');
@@ -198,6 +212,11 @@ export function Employees() {
   }
 
   const canEdit = profile?.role === 'admin';
+  const selectedPosition = positionCatalog.find((item) => item.name === form.position) || null;
+  const supervisorOptions = useMemo(
+    () => buildSupervisorOptions(employees, form.area, editing === 'new' ? '' : editing),
+    [employees, form.area, editing]
+  );
 
   return (
     <div className="page">
@@ -340,9 +359,18 @@ export function Employees() {
             </FormSection>
 
             <FormSection title="Datos laborales">
-              <Field label="Cargo" name="position" value={form.position} setForm={updateForm} />
+              <PositionField value={form.position} setForm={updateForm} />
+              {selectedPosition && (
+                <div className="role-logic-card field-wide">
+                  <Icon name={selectedPosition.supervisorRequired ? 'alert' : 'shield'} size={17} />
+                  <span>
+                    <strong>{selectedPosition.level}</strong>
+                    <small>{selectedPosition.supervisorRequired ? 'Este cargo debe tener supervisor y WhatsApp asociado para solicitudes.' : 'Este cargo puede operar como responsable o supervisor.'}</small>
+                  </span>
+                </div>
+              )}
               <Field label="Area" name="area" value={form.area} setForm={updateForm} />
-              <Field label="Supervisor" name="supervisor" value={form.supervisor} setForm={updateForm} />
+              <SupervisorField value={form.supervisor} setForm={updateForm} options={supervisorOptions} />
               <Field label="WhatsApp supervisor" name="supervisorWhatsapp" value={form.supervisorWhatsapp} setForm={updateForm} />
               <Field label="Sede / ubicacion" name="workLocation" value={form.workLocation} setForm={updateForm} />
               <SelectField label="Tipo de contrato" name="contractType" value={form.contractType} setForm={updateForm} options={contractOptions} />
@@ -452,6 +480,77 @@ function SelectField({ label, name, value, setForm, options }) {
       </select>
     </label>
   );
+}
+
+function PositionField({ value, setForm }) {
+  function applyPosition(nextPosition) {
+    const preset = positionCatalog.find((item) => item.name === nextPosition);
+    setForm((current) => ({
+      ...current,
+      position: nextPosition,
+      area: preset?.area || current.area,
+      weeklyHours: preset?.weeklyHours ?? current.weeklyHours,
+      scheduleStart: preset?.scheduleStart || current.scheduleStart,
+      scheduleEnd: preset?.scheduleEnd || current.scheduleEnd,
+    }));
+  }
+
+  return (
+    <label className="field">
+      <span>Cargo</span>
+      <select value={value} onChange={(event) => applyPosition(event.target.value)}>
+        <option value="">Seleccionar cargo</option>
+        {positionCatalog.map((item) => <option key={item.name} value={item.name}>{item.name}</option>)}
+      </select>
+    </label>
+  );
+}
+
+function SupervisorField({ value, setForm, options }) {
+  function applySupervisor(nextName) {
+    const supervisor = options.find((item) => item.name === nextName);
+    setForm((current) => ({
+      ...current,
+      supervisor: nextName,
+      supervisorWhatsapp: supervisor?.phone || current.supervisorWhatsapp,
+    }));
+  }
+
+  return (
+    <label className="field">
+      <span>Supervisor</span>
+      <input
+        list="employee-supervisor-options"
+        name="supervisor"
+        value={value}
+        onChange={(event) => applySupervisor(event.target.value)}
+        placeholder="Seleccionar o escribir supervisor"
+      />
+      <datalist id="employee-supervisor-options">
+        {options.map((item) => <option key={`${item.id}-${item.name}`} value={item.name} label={item.area || item.phone} />)}
+      </datalist>
+    </label>
+  );
+}
+
+function buildSupervisorOptions(employees, area, excludeId = '') {
+  const supervisorWords = ['supervisor', 'jefe', 'encargado', 'administrador', 'gerente'];
+  return employees
+    .filter((employee) => employee.status !== 'Inactivo')
+    .filter((employee) => employee.id !== excludeId)
+    .filter((employee) => supervisorWords.some((word) => `${employee.position || ''} ${employee.area || ''}`.toLowerCase().includes(word)))
+    .sort((a, b) => {
+      const sameAreaA = area && a.area === area ? 0 : 1;
+      const sameAreaB = area && b.area === area ? 0 : 1;
+      if (sameAreaA !== sameAreaB) return sameAreaA - sameAreaB;
+      return a.name.localeCompare(b.name);
+    })
+    .map((employee) => ({
+      id: employee.id,
+      name: employee.name,
+      area: employee.area || '',
+      phone: employee.phone || employee.supervisorWhatsapp || '',
+    }));
 }
 
 function initials(name = '') {
