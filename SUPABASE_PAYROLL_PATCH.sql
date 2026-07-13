@@ -5,6 +5,7 @@ alter table public.payroll add column if not exists payment_date date;
 alter table public.payroll add column if not exists payment_reference text default '';
 alter table public.payroll add column if not exists notes text default '';
 alter table public.payroll add column if not exists paid_at timestamptz;
+alter table public.payroll add column if not exists advance numeric not null default 0;
 alter table public.payroll add column if not exists receipt_file_name text;
 alter table public.payroll add column if not exists receipt_storage_path text;
 alter table public.payroll add column if not exists receipt_content_type text;
@@ -51,6 +52,7 @@ where table_schema = 'public'
     'payment_reference',
     'notes',
     'paid_at',
+    'advance',
     'receipt_file_name',
     'receipt_storage_path',
     'prepared_at',

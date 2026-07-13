@@ -80,6 +80,7 @@ const tableMap = {
     employeeName: 'employee_name',
     ownerEmail: 'owner_email',
     baseSalary: 'base_salary',
+    advance: 'advance',
     netPay: 'net_pay',
     paymentDate: 'payment_date',
     paymentReference: 'payment_reference',

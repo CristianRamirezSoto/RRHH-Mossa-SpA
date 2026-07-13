@@ -35,13 +35,15 @@ export function Payroll() {
       const record = records.get(employee.id);
       const baseSalary = Number(record?.baseSalary || employee.baseSalary || 0);
       const bonus = Number(record?.bonus || 0);
+      const advance = Number(record?.advance || 0);
       const deductions = Number(record?.deductions || 0);
       return {
         employee,
         baseSalary,
         bonus,
+        advance,
         deductions,
-        netPay: Number(record?.netPay || baseSalary + bonus - deductions),
+        netPay: baseSalary + bonus - advance - deductions,
         status: record?.status || 'Borrador',
         paymentDate: record?.paymentDate || suggestedPaymentDate(period),
         paymentReference: record?.paymentReference || '',
@@ -88,7 +90,8 @@ export function Payroll() {
 
   const totals = useMemo(() => periodRows.reduce((acc, row) => {
     acc.gross += row.baseSalary + row.bonus;
-    acc.deductions += row.deductions;
+    acc.advance += row.advance;
+    acc.deductions += row.deductions + row.advance;
     acc.net += row.netPay;
     acc.ready += row.status === 'Listo para pago' ? 1 : 0;
     acc.pending += row.status === 'Pendiente pago' ? 1 : 0;
@@ -97,7 +100,7 @@ export function Payroll() {
     acc.pendingAmount += ['Listo para pago', 'Pendiente pago'].includes(row.status) ? row.netPay : 0;
     acc.paidAmount += row.status === 'Pagado' ? row.netPay : 0;
     return acc;
-  }, { gross: 0, deductions: 0, net: 0, ready: 0, pending: 0, paid: 0, drafts: 0, pendingAmount: 0, paidAmount: 0 }), [periodRows]);
+  }, { gross: 0, advance: 0, deductions: 0, net: 0, ready: 0, pending: 0, paid: 0, drafts: 0, pendingAmount: 0, paidAmount: 0 }), [periodRows]);
 
   async function saveRow(row, status = row.status, receiptFile = null) {
     const rowId = `${period}_${row.employee.id}`;
@@ -137,8 +140,9 @@ export function Payroll() {
         position: row.employee.position || '',
         baseSalary: row.baseSalary,
         bonus: row.bonus,
+        advance: row.advance,
         deductions: row.deductions,
-        netPay: row.baseSalary + row.bonus - row.deductions,
+        netPay: payrollNet(row),
         status,
         paymentDate: row.paymentDate || suggestedPaymentDate(period),
         paymentReference: status === 'Pagado' ? row.paymentReference.trim() : row.paymentReference,
@@ -164,7 +168,7 @@ export function Payroll() {
       return true;
     } catch (error) {
       if (uploadedPath) await deleteDocumentFile(uploadedPath).catch(() => {});
-      const needsPatch = /receipt_|prepared_|approved_/i.test(error.message);
+      const needsPatch = /receipt_|prepared_|approved_|advance/i.test(error.message);
       setMessage(needsPatch
         ? 'Falta actualizar remuneraciones en Supabase. Ejecuta SUPABASE_PAYROLL_PATCH.sql completo y vuelve a intentar.'
         : `No se pudo guardar remuneracion: ${error.message}`);
@@ -192,6 +196,7 @@ export function Payroll() {
       Periodo: period,
       'Sueldo base': row.baseSalary,
       Bonos: row.bonus,
+      Anticipo: row.advance,
       Descuentos: row.deductions,
       Liquido: row.netPay,
       Estado: row.status,
@@ -231,13 +236,13 @@ export function Payroll() {
         <PayrollStat icon="wallet" label="Liquido total" value={formatMoney(totals.net)} />
         <PayrollStat icon="clock" label="Pendiente por pagar" value={formatMoney(totals.pendingAmount)} tone="warning" />
         <PayrollStat icon="check" label="Pagado" value={formatMoney(totals.paidAmount)} />
-        <PayrollStat icon="shield" label="Avance" value={`${totals.paid}/${periodRows.length}`} />
+        <PayrollStat icon="download" label="Anticipos" value={formatMoney(totals.advance)} tone="warning" />
       </section>
 
       <section className="payroll-alert-strip">
         <div>
           <strong>{totals.ready + totals.pending} pagos requieren accion</strong>
-          <span>{totals.drafts} en borrador - {totals.ready} listos - {totals.pending} pendientes - {totals.paid} pagados</span>
+          <span>{totals.drafts} en borrador - {totals.ready} listos - {totals.pending} pendientes - {totals.paid} pagados - progreso {totals.paid}/{periodRows.length}</span>
         </div>
         <span className={totals.ready + totals.pending ? 'payroll-risk warning' : 'payroll-risk ok'}>
           {totals.ready + totals.pending ? 'Revisar antes del cierre' : 'Periodo sin pendientes'}
@@ -296,7 +301,7 @@ function PayrollRow({ row, period, onSave, onDownloadReceipt, saving }) {
   const [receiptFile, setReceiptFile] = useState(null);
   const fileInput = useRef(null);
   useEffect(() => setDraft(row), [row]);
-  const net = draft.baseSalary + draft.bonus - draft.deductions;
+  const net = payrollNet(draft);
   const canPay = draft.status === 'Listo para pago' || draft.status === 'Pendiente pago';
   const isPaid = draft.status === 'Pagado';
   const receiptReady = Boolean(receiptFile || draft.receiptStoragePath);
@@ -338,7 +343,11 @@ function PayrollRow({ row, period, onSave, onDownloadReceipt, saving }) {
           <MoneyInput value={draft.bonus} disabled={isPaid} onChange={(value) => setDraft((current) => ({ ...current, bonus: value }))} />
         </label>
         <label>
-          <span>Descuentos</span>
+          <span>Anticipo</span>
+          <MoneyInput value={draft.advance} disabled={isPaid} onChange={(value) => setDraft((current) => ({ ...current, advance: value }))} />
+        </label>
+        <label>
+          <span>Otros descuentos</span>
           <MoneyInput value={draft.deductions} disabled={isPaid} onChange={(value) => setDraft((current) => ({ ...current, deductions: value }))} />
         </label>
       </div>
@@ -391,14 +400,26 @@ function PayrollRow({ row, period, onSave, onDownloadReceipt, saving }) {
         <span>Pagado: {formatTimestamp(draft.paidAt)}</span>
       </div>
 
-      <div className="payroll-actions">
-        {!isPaid && <button type="button" disabled={saving} onClick={() => submit('Borrador')}>Guardar</button>}
-        {!isPaid && <button type="button" disabled={saving} onClick={() => submit('Listo para pago')}>Listo pago</button>}
-        {!isPaid && <button type="button" disabled={saving} onClick={() => submit('Pendiente pago')}>Pendiente</button>}
-        {!isPaid && <button type="button" disabled={saving || !canPay} onClick={() => submit('Pagado')}>Pagar</button>}
-        <button type="button" className="payroll-slip-button" onClick={() => printPayrollSlip(draft, period, net)}>
-          <Icon name="file" size={15} /> Liquidacion
-        </button>
+      <div className="payroll-action-groups">
+        {!isPaid && (
+          <div className="payroll-action-group">
+            <span>Flujo de pago</span>
+            <div className="payroll-actions">
+              <button type="button" disabled={saving} onClick={() => submit('Borrador')}>Guardar</button>
+              <button type="button" disabled={saving} onClick={() => submit('Listo para pago')}>Listo pago</button>
+              <button type="button" disabled={saving} onClick={() => submit('Pendiente pago')}>Pendiente</button>
+              <button type="button" className="payroll-pay-button" disabled={saving || !canPay} onClick={() => submit('Pagado')}>Pagar</button>
+            </div>
+          </div>
+        )}
+        <div className="payroll-action-group payroll-document-group">
+          <span>Documentos</span>
+          <div className="payroll-actions payroll-document-actions">
+            <button type="button" className="payroll-slip-button" onClick={() => printPayrollSlip(draft, period, net)}>
+              <Icon name="file" size={15} /> Liquidacion
+            </button>
+          </div>
+        </div>
       </div>
     </article>
   );
@@ -413,14 +434,18 @@ function PayrollStat({ icon, label, value, tone = '' }) {
 }
 
 function validatePayroll(row, status, receiptFile) {
-  const net = Number(row.baseSalary) + Number(row.bonus) - Number(row.deductions);
-  if (row.baseSalary < 0 || row.bonus < 0 || row.deductions < 0) return 'Los montos no pueden ser negativos.';
+  const net = payrollNet(row);
+  if (row.baseSalary < 0 || row.bonus < 0 || row.advance < 0 || row.deductions < 0) return 'Los montos no pueden ser negativos.';
   if (net <= 0) return 'El liquido a pagar debe ser mayor que cero.';
   if (status === 'Pagado' && !row.paymentDate) return 'Indica la fecha efectiva del pago.';
   if (status === 'Pagado' && !row.paymentReference.trim()) return 'Agrega el folio o referencia antes de registrar el pago.';
   if (status === 'Pagado' && !receiptFile && !row.receiptStoragePath) return 'Adjunta el comprobante antes de registrar el pago.';
   if (receiptFile && receiptFile.size > 15 * 1024 * 1024) return 'El comprobante no puede superar 15 MB.';
   return '';
+}
+
+function payrollNet(row) {
+  return Number(row.baseSalary || 0) + Number(row.bonus || 0) - Number(row.advance || 0) - Number(row.deductions || 0);
 }
 
 function printPayrollSlip(row, period, net) {
@@ -431,7 +456,7 @@ function printPayrollSlip(row, period, net) {
   <style>body{font-family:Arial,sans-serif;color:#17372c;margin:42px}header{border-bottom:3px solid #247252;padding-bottom:18px;margin-bottom:26px}h1{margin:0 0 6px;font-size:25px}p{color:#64776e}.meta{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px}.meta div,.total{padding:14px;border:1px solid #dce7e1;border-radius:8px}.meta span,th{font-size:11px;text-transform:uppercase;color:#71827a}strong{display:block;margin-top:5px}table{width:100%;border-collapse:collapse}th,td{padding:13px;border-bottom:1px solid #dce7e1;text-align:left}td:last-child,th:last-child{text-align:right}.total{margin-top:24px;text-align:right;background:#eff8f3}.total strong{font-size:24px}.signatures{display:grid;grid-template-columns:1fr 1fr;gap:70px;margin-top:90px}.signature{border-top:1px solid #51685e;text-align:center;padding-top:8px;font-size:12px}@media print{body{margin:20mm}}</style>
   </head><body><header><h1>Mossaspa</h1><p>Liquidacion de remuneraciones - ${escapeHtml(formatPeriod(period))}</p></header>
   <section class="meta"><div><span>Trabajador</span><strong>${escapeHtml(employee.name)}</strong></div><div><span>RUT</span><strong>${escapeHtml(employee.rut || 'No informado')}</strong></div><div><span>Cargo</span><strong>${escapeHtml(employee.position || 'No informado')}</strong></div><div><span>Area</span><strong>${escapeHtml(employee.area || 'No informada')}</strong></div></section>
-  <table><thead><tr><th>Concepto</th><th>Monto</th></tr></thead><tbody><tr><td>Sueldo base</td><td>${formatMoney(row.baseSalary)}</td></tr><tr><td>Bonos</td><td>${formatMoney(row.bonus)}</td></tr><tr><td>Descuentos</td><td>-${formatMoney(row.deductions)}</td></tr></tbody></table>
+  <table><thead><tr><th>Concepto</th><th>Monto</th></tr></thead><tbody><tr><td>Sueldo base</td><td>${formatMoney(row.baseSalary)}</td></tr><tr><td>Bonos</td><td>${formatMoney(row.bonus)}</td></tr><tr><td>Anticipo</td><td>-${formatMoney(row.advance)}</td></tr><tr><td>Otros descuentos</td><td>-${formatMoney(row.deductions)}</td></tr></tbody></table>
   <div class="total"><span>Liquido a pagar</span><strong>${formatMoney(net)}</strong></div>
   <p>Estado: ${escapeHtml(row.status)}${row.paymentReference ? ` | Referencia: ${escapeHtml(row.paymentReference)}` : ''}</p>
   <div class="signatures"><div class="signature">Firma empleador</div><div class="signature">Firma trabajador</div></div>

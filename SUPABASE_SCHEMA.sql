@@ -152,6 +152,7 @@ create table if not exists public.payroll (
   position text default '',
   base_salary numeric not null default 0,
   bonus numeric not null default 0,
+  advance numeric not null default 0,
   deductions numeric not null default 0,
   net_pay numeric not null default 0,
   status text not null default 'Borrador' check (status in ('Borrador', 'Listo para pago', 'Pendiente pago', 'Pagado')),
@@ -167,6 +168,7 @@ alter table public.payroll add column if not exists payment_date date;
 alter table public.payroll add column if not exists payment_reference text default '';
 alter table public.payroll add column if not exists notes text default '';
 alter table public.payroll add column if not exists paid_at timestamptz;
+alter table public.payroll add column if not exists advance numeric not null default 0;
 
 do $$
 declare
