@@ -211,6 +211,13 @@ export function Payroll() {
           <h1>Control mensual de pagos</h1>
           <p className="page-subtitle">Prepara sueldos, marca pendientes por pagar y deja trazabilidad de pagos realizados.</p>
         </div>
+      </header>
+
+      <section className="payroll-toolbar-panel">
+        <div>
+          <strong>Periodo de trabajo</strong>
+          <span>Selecciona el mes, revisa pendientes y exporta la nomina visible.</span>
+        </div>
         <div className="payroll-header-actions">
           <label className="compact-select payroll-period">
             <span>Periodo</span>
@@ -218,7 +225,7 @@ export function Payroll() {
           </label>
           <button className="secondary-button" type="button" onClick={exportPayroll}><Icon name="download" /> Excel</button>
         </div>
-      </header>
+      </section>
 
       <section className="stats-grid payroll-stats">
         <PayrollStat icon="wallet" label="Liquido total" value={formatMoney(totals.net)} />
