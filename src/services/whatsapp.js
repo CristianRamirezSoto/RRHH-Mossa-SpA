@@ -1,7 +1,8 @@
-import { supabase, supabaseConfigured } from '../supabase';
+import { supabase, supabaseConfigured } from '../lib/supabase';
+import { appConfig } from '../config/env';
 
-const fallbackNumber = import.meta.env.VITE_HR_WHATSAPP_NUMBER || '';
-const manualFallbackEnabled = import.meta.env.VITE_ENABLE_MANUAL_WHATSAPP_FALLBACK === 'true';
+const fallbackNumber = appConfig.hrWhatsappNumber;
+const manualFallbackEnabled = appConfig.manualWhatsappFallback;
 
 export function whatsappConfigured() {
   return supabaseConfigured || Boolean(formatWhatsappNumber(fallbackNumber));

@@ -1,5 +1,5 @@
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getDocumentViewUrl } from '../services/documentStorage';
 
@@ -8,26 +8,8 @@ export function AppLayout() {
   const location = useLocation();
   const [avatarUrl, setAvatarUrl] = useState('');
   const name = profile?.displayName || user?.email?.split('@')[0] || 'Usuario';
-  const navItems = [
-    ...(profile?.role === 'admin'
-      ? [
-          { to: '/panel', label: 'Panel', icon: 'grid' },
-          { to: '/colaboradores', label: 'Colaboradores', icon: 'users' },
-          { to: '/marcaje', label: 'Marcaje', icon: 'camera' },
-          { to: '/asistencia', label: 'Asistencia', icon: 'clock' },
-          { to: '/solicitudes', label: 'Solicitudes', icon: 'calendar' },
-          { to: '/remuneraciones', label: 'Remuneraciones', icon: 'wallet' },
-          { to: '/biometria', label: 'Biometría', icon: 'scan' },
-          { to: '/expedientes', label: 'Expedientes', icon: 'folder' },
-        ]
-      : []),
-    ...(profile?.role === 'admin' ? [] : [
-      { to: '/expediente', label: 'Mi expediente', icon: 'folder' },
-      { to: '/solicitudes', label: 'Solicitudes', icon: 'calendar' },
-    ]),
-    { to: '/notificaciones', label: 'Alertas', icon: 'bell' },
-    { to: '/perfil', label: 'Mi perfil', icon: 'user' },
-  ];
+  const isAdmin = profile?.role === 'admin';
+  const navGroups = isAdmin ? adminNavigation : employeeNavigation;
 
   useEffect(() => {
     let active = true;
@@ -46,36 +28,50 @@ export function AppLayout() {
   }
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${isAdmin ? 'admin-workspace' : 'employee-workspace'}`}>
       <aside className="sidebar">
         <div className="brand">
           <span className="brand-mark">M</span>
           <span>
-            <strong>Mossaspa</strong>
-            <small>Personas & cultura</small>
+            <strong>Mossa</strong>
+            <small>{isAdmin ? 'Administración de personas' : 'Portal de colaboradores'}</small>
           </span>
         </div>
 
+        <div className="workspace-badge">
+          <span><Icon name={isAdmin ? 'shield' : 'sparkles'} size={16} /></span>
+          <div>
+            <strong>{isAdmin ? 'Centro de administración' : 'Mi portal'}</strong>
+            <small>{isAdmin ? 'Vista completa' : 'Autoservicio personal'}</small>
+          </div>
+        </div>
+
         <nav className="sidebar-nav" aria-label="Navegación principal">
-          <p className="sidebar-label">Espacio de trabajo</p>
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
-            >
-              <Icon name={item.icon} />
-              {item.label}
-            </NavLink>
+          {navGroups.map((group) => (
+            <div className="sidebar-group" key={group.label}>
+              <p className="sidebar-label">{group.label}</p>
+              {group.items.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+                >
+                  <Icon name={item.icon} />
+                  <span>{item.label}</span>
+                </NavLink>
+              ))}
+            </div>
           ))}
         </nav>
 
         <div className="sidebar-footer">
           <div className="sidebar-user">
-            <span className="avatar sidebar-avatar">{avatarUrl ? <img src={avatarUrl} alt="" /> : initials(name)}</span>
+            <span className="avatar sidebar-avatar">
+              {avatarUrl ? <img src={avatarUrl} alt="" /> : initials(name)}
+            </span>
             <span className="sidebar-user-copy">
               <strong>{name}</strong>
-              <small>{profile?.role === 'admin' ? 'Administrador' : 'Colaborador'}</small>
+              <small>{isAdmin ? 'Administrador' : 'Colaborador'}</small>
             </span>
           </div>
           <button className="icon-button" type="button" onClick={logout} title="Cerrar sesión">
@@ -90,6 +86,59 @@ export function AppLayout() {
     </div>
   );
 }
+
+const adminNavigation = [
+  {
+    label: 'Resumen',
+    items: [
+      { to: '/panel', label: 'Inicio', icon: 'grid' },
+      { to: '/colaboradores', label: 'Colaboradores', icon: 'users' },
+    ],
+  },
+  {
+    label: 'Operación',
+    items: [
+      { to: '/marcaje', label: 'Marcaje', icon: 'camera' },
+      { to: '/asistencia', label: 'Asistencia', icon: 'clock' },
+      { to: '/solicitudes', label: 'Solicitudes', icon: 'calendar' },
+      { to: '/remuneraciones', label: 'Remuneraciones', icon: 'wallet' },
+    ],
+  },
+  {
+    label: 'Gestión',
+    items: [
+      { to: '/expedientes', label: 'Expedientes', icon: 'folder' },
+      { to: '/biometria', label: 'Biometría', icon: 'scan' },
+    ],
+  },
+  {
+    label: 'Cuenta',
+    items: [
+      { to: '/notificaciones', label: 'Notificaciones', icon: 'bell' },
+      { to: '/perfil', label: 'Mi perfil', icon: 'user' },
+    ],
+  },
+];
+
+const employeeNavigation = [
+  {
+    label: 'Mi espacio',
+    items: [
+      { to: '/inicio', label: 'Inicio', icon: 'grid' },
+      { to: '/personas', label: 'Personas', icon: 'users' },
+      { to: '/expediente', label: 'Mis documentos', icon: 'folder' },
+      { to: '/solicitudes', label: 'Solicitudes', icon: 'calendar' },
+      { to: '/mis-pagos', label: 'Mis liquidaciones', icon: 'wallet' },
+    ],
+  },
+  {
+    label: 'Cuenta',
+    items: [
+      { to: '/notificaciones', label: 'Notificaciones', icon: 'bell' },
+      { to: '/perfil', label: 'Mi perfil', icon: 'user' },
+    ],
+  },
+];
 
 function initials(name) {
   return name
@@ -131,6 +180,13 @@ export function Icon({ name, size = 19 }) {
     fingerprint: <><path d="M12 11a2 2 0 0 0-2 2c0 4-1 6-2 7"/><path d="M16 13a4 4 0 0 0-8 0c0 2-.2 4-1 5.5"/><path d="M18 13a6 6 0 0 0-12 0c0 1.5-.1 2.8-.5 4"/><path d="M14 13c0 4-.5 7-2 9"/><path d="M18 17c-.2 2-.7 3.5-1.4 5"/><path d="M4 13a8 8 0 0 1 16 0"/></>,
     calendar: <><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/></>,
     wallet: <><path d="M19 7V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7h-5a2 2 0 0 1 0-4Z"/><path d="M16 11h5"/><path d="M17 15h.01"/></>,
+    arrow: <><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></>,
+    sparkles: <><path d="m12 3-1.5 4.5L6 9l4.5 1.5L12 15l1.5-4.5L18 9l-4.5-1.5Z"/><path d="m5 16-.7 2.3L2 19l2.3.7L5 22l.7-2.3L8 19l-2.3-.7Z"/><path d="m19 14-.6 1.8-1.9.7 1.9.6L19 19l.6-1.9 1.9-.6-1.9-.7Z"/></>,
+    building: <><path d="M3 21h18"/><path d="M6 21V5l6-3 6 3v16"/><path d="M9 9h.01"/><path d="M15 9h.01"/><path d="M9 13h.01"/><path d="M15 13h.01"/><path d="M9 17h6"/></>,
+    location: <><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></>,
+    mail: <><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></>,
+    eye: <><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></>,
+    eyeOff: <><path d="m3 3 18 18"/><path d="M10.6 10.6a2 2 0 0 0 2.8 2.8"/><path d="M9.9 4.2A10.8 10.8 0 0 1 12 4c6.5 0 10 8 10 8a17 17 0 0 1-2.1 3.2"/><path d="M6.6 6.6C3.6 8.5 2 12 2 12s3.5 8 10 8a10 10 0 0 0 4.1-.9"/></>,
   };
 
   return (

@@ -1,8 +1,9 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import { supabase, supabaseConfigured } from '../supabase';
+import { supabase, supabaseConfigured } from '../lib/supabase';
+import { appConfig } from '../config/env';
 
 const AuthContext = createContext(null);
-const ADMIN_EMAIL = (import.meta.env.VITE_ADMIN_EMAIL || 'cramirez@mossaspa.cl').toLowerCase();
+const ADMIN_EMAIL = appConfig.adminEmail;
 const PROFILE_CACHE_PREFIX = 'rrhh-profile-cache:';
 
 function mapProfile(row, user) {

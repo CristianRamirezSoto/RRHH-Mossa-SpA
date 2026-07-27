@@ -1,4 +1,4 @@
-import { supabase, supabaseConfigured } from '../supabase';
+import { supabase, supabaseConfigured } from '../lib/supabase';
 import { updateProfile } from './supabaseData';
 
 function ensureSupabase() {

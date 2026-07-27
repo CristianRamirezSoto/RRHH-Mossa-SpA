@@ -1,4 +1,4 @@
-import { supabase, supabaseConfigured } from '../supabase';
+import { supabase, supabaseConfigured } from '../lib/supabase';
 
 function ensureSupabase() {
   if (!supabaseConfigured || !supabase) {
@@ -43,6 +43,7 @@ const tableMap = {
     uploadedAt: 'uploaded_at',
     uploadedBy: 'uploaded_by',
     notificationState: 'notification_state',
+    visibleToWorker: 'visible_to_worker',
   },
   attendance: {
     employeeId: 'employee_id',
@@ -110,11 +111,16 @@ const tableMap = {
     createdAt: 'created_at',
     updatedAt: 'updated_at',
   },
+  employeeDirectory: {
+    workLocation: 'work_location',
+    photoUrl: 'photo_url',
+  },
 };
 
 const tableNames = {
   biometricProfiles: 'biometric_profiles',
   hrRequests: 'hr_requests',
+  employeeDirectory: 'employee_directory',
 };
 
 function dbTable(table) {

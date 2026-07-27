@@ -1,6 +1,7 @@
-import { supabase, supabaseConfigured } from '../supabase';
+import { supabase, supabaseConfigured } from '../lib/supabase';
+import { appConfig } from '../config/env';
 
-const DOCUMENT_BUCKET = import.meta.env.VITE_SUPABASE_DOCUMENT_BUCKET || 'employee-documents';
+const DOCUMENT_BUCKET = appConfig.documentBucket;
 
 function ensureSupabaseStorage() {
   if (!supabaseConfigured || !supabase) {
