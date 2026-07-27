@@ -5,6 +5,7 @@ export const appConfig = Object.freeze({
   supabaseAnonKey: env.VITE_SUPABASE_ANON_KEY?.trim() || '',
   documentBucket: env.VITE_SUPABASE_DOCUMENT_BUCKET?.trim() || 'employee-documents',
   adminEmail: (env.VITE_ADMIN_EMAIL?.trim() || 'cramirez@mossaspa.cl').toLowerCase(),
+  allowSelfRegistration: env.VITE_ALLOW_SELF_REGISTRATION === 'true',
   hrWhatsappNumber: env.VITE_HR_WHATSAPP_NUMBER?.trim() || '',
   manualWhatsappFallback: env.VITE_ENABLE_MANUAL_WHATSAPP_FALLBACK === 'true',
 });

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { appConfig } from '../../config/env';
 import './Login.css';
 
 export function Login() {
@@ -75,6 +76,7 @@ export function Login() {
   }
 
   function switchMode() {
+    if (!appConfig.allowSelfRegistration) return;
     setEmail('');
     setPassword('');
     setError('');
@@ -106,22 +108,29 @@ export function Login() {
       <div className="login-panel-right">
         <div className="login-form-wrap">
           {/* Toggle modo */}
-          <div className="login-mode-toggle">
-            <button
-              type="button"
-              className={`login-mode-btn${isLogin ? ' login-mode-btn--active' : ''}`}
-              onClick={() => mode !== 'login' && switchMode()}
-            >
-              Iniciar sesión
-            </button>
-            <button
-              type="button"
-              className={`login-mode-btn${!isLogin ? ' login-mode-btn--active' : ''}`}
-              onClick={() => mode !== 'register' && switchMode()}
-            >
-              Crear cuenta
-            </button>
-          </div>
+          {appConfig.allowSelfRegistration ? (
+            <div className="login-mode-toggle">
+              <button
+                type="button"
+                className={`login-mode-btn${isLogin ? ' login-mode-btn--active' : ''}`}
+                onClick={() => mode !== 'login' && switchMode()}
+              >
+                Iniciar sesión
+              </button>
+              <button
+                type="button"
+                className={`login-mode-btn${!isLogin ? ' login-mode-btn--active' : ''}`}
+                onClick={() => mode !== 'register' && switchMode()}
+              >
+                Crear cuenta
+              </button>
+            </div>
+          ) : (
+            <div className="login-managed-access">
+              <IconLock />
+              <span>Acceso administrado por RRHH</span>
+            </div>
+          )}
 
           <h1 className="login-heading">
             {isLogin ? 'Bienvenido de vuelta' : 'Empieza ahora'}
@@ -218,12 +227,16 @@ export function Login() {
             </button>
           </form>
 
-          <p className="login-switch">
-            {isLogin ? '¿Todavía no tienes cuenta?' : '¿Ya tienes cuenta?'}{' '}
-            <button type="button" className="login-switch-btn" onClick={switchMode}>
-              {isLogin ? 'Regístrate gratis' : 'Inicia sesión'}
-            </button>
-          </p>
+          {appConfig.allowSelfRegistration ? (
+            <p className="login-switch">
+              {isLogin ? '¿Todavía no tienes cuenta?' : '¿Ya tienes cuenta?'}{' '}
+              <button type="button" className="login-switch-btn" onClick={switchMode}>
+                {isLogin ? 'Regístrate gratis' : 'Inicia sesión'}
+              </button>
+            </p>
+          ) : (
+            <p className="login-switch">Si necesitas acceso o recuperar tu cuenta, comunícate con RRHH.</p>
+          )}
         </div>
       </div>
     </div>
@@ -241,7 +254,7 @@ function traducirError(code) {
     'auth/too-many-requests': 'Demasiados intentos. Espera un momento e intenta de nuevo.',
     'auth/network-request-failed': 'Sin conexión a internet. Revisa tu red.',
     invalid_credentials: 'Correo o contraseña incorrectos.',
-    'Invalid login credentials': 'Correo o contraseña incorrectos. Si aún no creaste la cuenta, usa "Crear cuenta".',
+    'Invalid login credentials': 'Correo o contraseña incorrectos. Si aún no tienes acceso, comunícate con RRHH.',
     'Email not confirmed': 'Debes confirmar tu correo antes de iniciar sesión. Revisa tu bandeja de entrada.',
     user_already_exists: 'Ese correo ya tiene una cuenta. Intenta iniciar sesión.',
     'User already registered': 'Ese correo ya tiene una cuenta. Intenta iniciar sesión.',

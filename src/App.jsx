@@ -30,6 +30,10 @@ const WorkerPayments = lazyNamed(
   () => import('./features/employee-portal/WorkerPayments'),
   'WorkerPayments',
 );
+const AccountManagement = lazyNamed(
+  () => import('./features/account-management/AccountManagement'),
+  'AccountManagement',
+);
 
 function lazyNamed(loader, exportName) {
   return lazy(() => loader().then((module) => ({ default: module[exportName] })));
@@ -59,6 +63,7 @@ export default function App() {
               <Route path="/remuneraciones" element={<AdminRoute><Payroll /></AdminRoute>} />
               <Route path="/expedientes" element={<AdminRoute><DigitalFile /></AdminRoute>} />
               <Route path="/expedientes/:employeeId" element={<AdminRoute><DigitalFile /></AdminRoute>} />
+              <Route path="/cuentas" element={<AdminRoute><AccountManagement /></AdminRoute>} />
 
               <Route path="/inicio" element={<EmployeeRoute><WorkerHome /></EmployeeRoute>} />
               <Route path="/personas" element={<EmployeeRoute><EmployeeDirectory /></EmployeeRoute>} />

@@ -124,6 +124,21 @@
   margin-bottom: 28px;
   gap: 2px;
 }
+
+.login-managed-access {
+  width: fit-content;
+  margin-bottom: 28px;
+  padding: 8px 11px;
+  border: 1px solid #cfe4da;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #326b55;
+  background: #edf7f2;
+  font-size: .72rem;
+  font-weight: 750;
+}
 .login-mode-btn {
   flex: 1;
   background: transparent;

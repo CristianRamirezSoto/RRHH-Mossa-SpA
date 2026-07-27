@@ -109,6 +109,7 @@ const adminNavigation = [
     items: [
       { to: '/expedientes', label: 'Expedientes', icon: 'folder' },
       { to: '/biometria', label: 'Biometría', icon: 'scan' },
+      { to: '/cuentas', label: 'Usuarios y permisos', icon: 'key' },
     ],
   },
   {
@@ -187,6 +188,7 @@ export function Icon({ name, size = 19 }) {
     mail: <><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></>,
     eye: <><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></>,
     eyeOff: <><path d="m3 3 18 18"/><path d="M10.6 10.6a2 2 0 0 0 2.8 2.8"/><path d="M9.9 4.2A10.8 10.8 0 0 1 12 4c6.5 0 10 8 10 8a17 17 0 0 1-2.1 3.2"/><path d="M6.6 6.6C3.6 8.5 2 12 2 12s3.5 8 10 8a10 10 0 0 0 4.1-.9"/></>,
+    key: <><circle cx="8" cy="15" r="4"/><path d="m11 12 9-9"/><path d="m17 6 3 3"/><path d="m14 9 3 3"/></>,
   };
 
   return (

@@ -18,7 +18,8 @@ function mapProfile(row, user) {
     avatarStoragePath: row?.avatar_storage_path || '',
     avatarFileName: row?.avatar_file_name || '',
     avatarUpdatedAt: row?.avatar_updated_at || '',
-    role: isConfiguredAdmin ? 'admin' : (row?.role || 'employee'),
+    accountStatus: row?.account_status || 'active',
+    role: row?.role || (isConfiguredAdmin ? 'admin' : 'employee'),
   };
 }
 
@@ -43,7 +44,7 @@ function readCachedProfile(user) {
     return {
       ...mapProfile(null, user),
       ...cached,
-      role: user.email?.toLowerCase() === ADMIN_EMAIL ? 'admin' : (cached.role || 'employee'),
+      role: cached.role || (user.email?.toLowerCase() === ADMIN_EMAIL ? 'admin' : 'employee'),
     };
   } catch {
     return null;
@@ -61,6 +62,7 @@ function writeCachedProfile(profile) {
       avatarStoragePath: profile.avatarStoragePath || '',
       avatarFileName: profile.avatarFileName || '',
       avatarUpdatedAt: profile.avatarUpdatedAt || '',
+      accountStatus: profile.accountStatus || 'active',
       role: profile.role || 'employee',
     }));
   } catch {
