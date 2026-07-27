@@ -1,27 +1,11 @@
--- Portal del trabajador: directorio seguro, visibilidad documental y liquidaciones liberadas.
--- Ejecutar una vez en Supabase > SQL Editor después de 00_schema.sql y 01_storage.sql.
+-- Corrige la alerta Security Definer View de Supabase para employee_directory.
+-- Ejecutar una vez en Supabase > SQL Editor despues de 03_document_permissions.sql.
+--
+-- La vista anterior se reemplaza por una tabla RLS que solo contiene campos
+-- laborales aptos para el directorio. Un trigger privado la mantiene sincronizada.
 
-alter table public.documents
-  add column if not exists visible_to_worker boolean not null default true;
+begin;
 
-drop policy if exists "documents_read_own" on public.documents;
-create policy "documents_read_own" on public.documents
-for select to authenticated
-using (
-  visible_to_worker = true
-  and lower(owner_email) = lower(coalesce(auth.jwt()->>'email', ''))
-);
-
-drop policy if exists "payroll_read_own" on public.payroll;
-create policy "payroll_read_own" on public.payroll
-for select to authenticated
-using (
-  status in ('Pendiente pago', 'Pagado')
-  and lower(owner_email) = lower(coalesce(auth.jwt()->>'email', ''))
-);
-
--- El directorio se guarda en una tabla RLS separada para no usar una vista
--- SECURITY DEFINER ni exponer columnas sensibles de public.employees.
 do $$
 begin
   if exists (
@@ -98,6 +82,7 @@ begin
 end;
 $$;
 
+-- Es una funcion exclusiva del trigger: ningun usuario de la API puede llamarla.
 revoke all on function public.sync_employee_directory() from public;
 revoke all on function public.sync_employee_directory() from anon;
 revoke all on function public.sync_employee_directory() from authenticated;
@@ -135,3 +120,5 @@ comment on table public.employee_directory is
   'Directorio interno RLS con campos laborales no sensibles para usuarios autenticados.';
 
 notify pgrst, 'reload schema';
+
+commit;
