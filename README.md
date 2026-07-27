@@ -38,6 +38,7 @@ Para una instalación nueva, ejecuta en SQL Editor:
 1. `supabase/sql/00_schema.sql`
 2. `supabase/sql/01_storage.sql`
 3. `supabase/sql/02_employee_portal.sql`
+4. `supabase/sql/03_document_permissions.sql`
 
 Los archivos de `supabase/sql/patches` documentan ajustes históricos y no deben ejecutarse indiscriminadamente sobre una instalación nueva. Las tareas administrativas manuales están en `supabase/sql/admin`.
 

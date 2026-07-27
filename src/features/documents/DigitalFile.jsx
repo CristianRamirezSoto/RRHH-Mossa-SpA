@@ -208,6 +208,7 @@ function EmployeeFile({ employee, documents, canManage, currentUser, onBack }) {
   const [form, setForm] = useState(emptyForm);
   const [file, setFile] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState('');
   const [message, setMessage] = useState('');
   const fileInput = useRef(null);
   const summary = documentSummary(documents);
@@ -340,12 +341,22 @@ function EmployeeFile({ employee, documents, canManage, currentUser, onBack }) {
   }
 
   async function removeDocument(item) {
+    if (!canManage || deletingId) return;
     if (!window.confirm(`¿Eliminar "${item.fileName}"?`)) return;
+    setDeletingId(item.id);
+    setMessage('');
     try {
-      await deleteDocumentFile(item.storagePath);
       await deleteRow('documents', item.id);
+      try {
+        await deleteDocumentFile(item.storagePath);
+        setMessage('Documento eliminado correctamente.');
+      } catch (storageError) {
+        setMessage(`Documento eliminado del expediente. El archivo no pudo limpiarse de Storage: ${storageError.message}`);
+      }
     } catch (error) {
       setMessage(`No se pudo eliminar: ${error.message}`);
+    } finally {
+      setDeletingId('');
     }
   }
 
@@ -508,7 +519,17 @@ function EmployeeFile({ employee, documents, canManage, currentUser, onBack }) {
                     <Icon name={item.visibleToWorker === false ? 'eye' : 'eyeOff'} />
                   </button>
                 )}
-                {canManage && <button className="danger-action" type="button" onClick={() => removeDocument(item)} title="Eliminar"><Icon name="trash" /></button>}
+                {canManage && (
+                  <button
+                    className="danger-action"
+                    type="button"
+                    onClick={() => removeDocument(item)}
+                    title={deletingId === item.id ? 'Eliminando…' : 'Eliminar'}
+                    disabled={Boolean(deletingId)}
+                  >
+                    <Icon name="trash" />
+                  </button>
+                )}
               </div>
             </article>
           );

@@ -1,26 +1,31 @@
--- Configuracion minima para usar Supabase Storage en Expediente Digital.
--- Ejecutar en Supabase > SQL Editor > New query > Run.
+-- Permisos definitivos para documentos y Storage.
+-- Ejecutar después de 02_employee_portal.sql.
+--
+-- Administrador:
+--   - puede subir, descargar, ocultar y eliminar documentos.
+-- Trabajador:
+--   - solo puede consultar y descargar sus documentos visibles;
+--   - puede gestionar únicamente su propia foto de perfil.
 
-insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values (
-  'employee-documents',
-  'employee-documents',
-  false,
-  15728640,
-  array[
-    'application/pdf',
-    'image/jpeg',
-    'image/png',
-    'image/webp',
-    'application/msword',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-  ]
-)
-on conflict (id) do update
-set
-  public = excluded.public,
-  file_size_limit = excluded.file_size_limit,
-  allowed_mime_types = excluded.allowed_mime_types;
+alter table public.documents
+  add column if not exists visible_to_worker boolean not null default true;
+
+alter table public.payroll
+  add column if not exists receipt_storage_path text default '';
+
+drop policy if exists "documents_admin_all" on public.documents;
+create policy "documents_admin_all" on public.documents
+for all to authenticated
+using (public.is_admin())
+with check (public.is_admin());
+
+drop policy if exists "documents_read_own" on public.documents;
+create policy "documents_read_own" on public.documents
+for select to authenticated
+using (
+  visible_to_worker = true
+  and lower(owner_email) = lower(coalesce(auth.jwt()->>'email', ''))
+);
 
 drop policy if exists "employee_documents_anon_read" on storage.objects;
 drop policy if exists "employee_documents_anon_upload" on storage.objects;
@@ -104,3 +109,5 @@ with check (
     or name like ('profiles/' || auth.uid()::text || '/avatar/%')
   )
 );
+
+notify pgrst, 'reload schema';
