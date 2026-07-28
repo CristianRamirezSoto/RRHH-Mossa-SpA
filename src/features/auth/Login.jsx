@@ -145,7 +145,11 @@ export function Login() {
         <div className="login-form-wrap">
           <div className="login-logo-row">
             <img src="/images/mossa-logo.png" alt="Construcción Mossa SpA" />
-            <span>Portal de personas</span>
+            <i aria-hidden="true" />
+            <span>
+              <strong>Portal de personas</strong>
+              <small>Gestión interna y colaboradores</small>
+            </span>
           </div>
 
           {!isRecovery && appConfig.allowSelfRegistration ? (
@@ -301,8 +305,8 @@ export function Login() {
       <aside className="login-visual-panel" aria-hidden="true">
         <div className="login-visual-shade" />
         <div className="login-visual-brand">
-          <span className="login-visual-mark">M</span>
-          <div><strong>Mossa SpA</strong><small>Construcción que conecta personas</small></div>
+          <IconLock />
+          <span><strong>Entorno seguro</strong><small>Uso exclusivo Mossa SpA</small></span>
         </div>
         <article className="login-hero-card">
           <span className="login-hero-kicker">Portal de colaboradores</span>

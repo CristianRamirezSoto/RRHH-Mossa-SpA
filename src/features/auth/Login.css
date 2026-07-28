@@ -30,29 +30,48 @@
 }
 
 .login-logo-row {
-  margin-bottom: 24px;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto 27px;
+  padding: 8px 16px 8px 10px;
+  border: 1px solid #e4eaed;
+  border-radius: 18px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 18px;
+  justify-content: center;
+  gap: 14px;
+  background: linear-gradient(135deg, #fff, #f8fafb);
+  box-shadow: 0 9px 28px rgba(21, 54, 72, .06);
 }
 
 .login-logo-row img {
-  width: 150px;
-  height: 88px;
+  width: 116px;
+  height: 82px;
   object-fit: contain;
-  object-position: left center;
+  object-position: center;
+}
+
+.login-logo-row > i {
+  width: 1px;
+  height: 43px;
+  background: #dce4e8;
 }
 
 .login-logo-row > span {
-  padding: 7px 10px;
-  border: 1px solid #dfe7eb;
-  border-radius: 999px;
-  color: #566c78;
-  background: #f7f9fa;
-  font-size: .68rem;
-  font-weight: 800;
+  display: grid;
+  gap: 3px;
   white-space: nowrap;
+}
+
+.login-logo-row strong {
+  color: #153f58;
+  font-size: .76rem;
+  letter-spacing: -.01em;
+}
+
+.login-logo-row small {
+  color: #829099;
+  font-size: .58rem;
 }
 
 .login-managed-access {
@@ -392,40 +411,31 @@
 
 .login-visual-brand {
   align-self: flex-end;
+  padding: 10px 13px;
+  border: 1px solid rgba(255, 255, 255, .18);
+  border-radius: 13px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 9px;
   color: #fff;
-  text-align: right;
-}
-
-.login-visual-mark {
-  order: 2;
-  width: 43px;
-  height: 43px;
-  border: 1px solid rgba(255, 255, 255, .32);
-  border-radius: 13px;
-  display: grid;
-  place-items: center;
-  background: rgba(10, 38, 54, .55);
+  background: rgba(8, 31, 45, .52);
   backdrop-filter: blur(12px);
-  font-family: 'Manrope', sans-serif;
-  font-weight: 900;
 }
 
+.login-visual-brand span,
 .login-visual-brand strong,
 .login-visual-brand small {
   display: block;
 }
 
 .login-visual-brand strong {
-  font-size: .86rem;
+  font-size: .69rem;
 }
 
 .login-visual-brand small {
   margin-top: 2px;
   color: rgba(255, 255, 255, .72);
-  font-size: .64rem;
+  font-size: .58rem;
 }
 
 .login-hero-card {
@@ -583,17 +593,24 @@
 
   .login-logo-row {
     margin-bottom: 18px;
+    padding: 7px 13px 7px 8px;
+    gap: 11px;
   }
 
   .login-logo-row img {
-    width: 118px;
-    height: 69px;
+    width: 96px;
+    height: 68px;
   }
 }
 
 @media (max-width: 420px) {
+  .login-logo-row {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
   .login-logo-row > span {
-    display: none;
+    white-space: normal;
   }
 
   .login-heading {
