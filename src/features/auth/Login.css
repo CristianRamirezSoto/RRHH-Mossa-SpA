@@ -1,5 +1,16 @@
+.login-viewport-locked,
+.login-viewport-locked body,
+.login-viewport-locked #root {
+  height: 100%;
+  overflow: hidden;
+}
+
 .login-root {
-  min-height: 100vh;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  max-height: 100dvh;
   display: grid;
   grid-template-columns: minmax(480px, 49%) minmax(0, 1fr);
   overflow: hidden;
@@ -14,8 +25,9 @@
 .login-access-panel {
   position: relative;
   z-index: 2;
-  min-height: 100vh;
-  padding: 54px clamp(34px, 6vw, 92px);
+  height: 100%;
+  min-height: 0;
+  padding: clamp(24px, 5.8vh, 54px) clamp(34px, 6vw, 92px);
   border-radius: 0 38px 38px 0;
   display: flex;
   align-items: center;
@@ -383,8 +395,9 @@
 
 .login-visual-panel {
   position: relative;
-  min-height: 100vh;
-  padding: 48px;
+  height: 100%;
+  min-height: 0;
+  padding: clamp(28px, 5.2vh, 48px);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -547,59 +560,216 @@
   }
 }
 
-@media (max-width: 760px) {
-  .login-root {
-    min-height: 100svh;
-    grid-template-columns: 1fr;
-    overflow: visible;
-  }
-
-  .login-visual-panel {
-    min-height: 255px;
-    padding: 22px;
-    order: -1;
-    background-position: center 60%;
-  }
-
-  .login-visual-brand,
-  .login-security-card {
-    display: none;
-  }
-
-  .login-hero-card {
-    width: min(440px, 100%);
-    margin: auto 0 0;
-    padding: 18px;
-    border-radius: 18px;
-  }
-
-  .login-hero-card h2 {
-    margin: 7px 0;
-    font-size: 1.55rem;
-  }
-
-  .login-hero-card > p,
-  .login-hero-features {
-    display: none;
-  }
-
+@media (max-height: 840px) and (min-width: 761px) {
   .login-access-panel {
-    min-height: 0;
-    padding: 30px 22px 40px;
-    border-radius: 26px 26px 0 0;
-    align-items: flex-start;
-    box-shadow: 0 -20px 50px rgba(5, 24, 38, .2);
+    padding-top: 18px;
+    padding-bottom: 18px;
   }
 
   .login-logo-row {
-    margin-bottom: 18px;
-    padding: 7px 13px 7px 8px;
-    gap: 11px;
+    margin-bottom: 14px;
+    padding: 5px 13px 5px 8px;
   }
 
   .login-logo-row img {
     width: 96px;
-    height: 68px;
+    height: 66px;
+  }
+
+  .login-logo-row > i {
+    height: 36px;
+  }
+
+  .login-managed-access {
+    min-height: 31px;
+    margin-bottom: 12px;
+    padding: 5px 9px;
+  }
+
+  .login-heading {
+    max-width: none;
+    font-size: clamp(1.65rem, 2.7vw, 2rem);
+  }
+
+  .login-subheading {
+    margin: 6px 0 15px;
+    line-height: 1.45;
+  }
+
+  .login-mode-toggle {
+    margin-bottom: 13px;
+  }
+
+  .login-field {
+    margin-bottom: 11px;
+  }
+
+  .login-label {
+    margin-bottom: 5px;
+  }
+
+  .login-input {
+    min-height: 48px;
+  }
+
+  .login-submit {
+    min-height: 48px;
+  }
+
+  .login-recovery-row,
+  .login-switch {
+    margin-top: 11px;
+  }
+
+  .login-help-card {
+    margin-top: 16px;
+    padding: 11px 13px;
+  }
+
+  .login-privacy-note {
+    margin-top: 10px;
+  }
+
+  .login-visual-panel {
+    padding: 28px;
+  }
+
+  .login-hero-card {
+    padding: 22px;
+  }
+
+  .login-security-card {
+    margin-top: 12px;
+    padding: 9px 12px;
+  }
+}
+
+@media (max-height: 680px) and (min-width: 761px) {
+  .login-logo-row {
+    margin-bottom: 9px;
+  }
+
+  .login-logo-row img {
+    width: 82px;
+    height: 55px;
+  }
+
+  .login-logo-row small,
+  .login-managed-access,
+  .login-help-card p,
+  .login-hero-features,
+  .login-security-card {
+    display: none;
+  }
+
+  .login-heading {
+    font-size: 1.65rem;
+  }
+
+  .login-subheading {
+    margin-bottom: 10px;
+    font-size: .8rem;
+  }
+
+  .login-help-card {
+    margin-top: 10px;
+    align-items: center;
+  }
+}
+
+@media (max-width: 760px) {
+  .login-root {
+    position: relative;
+    height: 100svh;
+    height: 100dvh;
+    min-height: 0;
+    grid-template-columns: 1fr;
+    overflow: hidden;
+  }
+
+  .login-visual-panel {
+    display: none;
+  }
+
+  .login-access-panel {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    padding: clamp(15px, 3.4svh, 28px) clamp(18px, 6vw, 32px);
+    border-radius: 0;
+    align-items: center;
+    overflow: hidden;
+    box-shadow: none;
+  }
+
+  .login-logo-row {
+    margin-bottom: clamp(11px, 2.2svh, 18px);
+    padding: 5px 12px 5px 7px;
+    gap: 11px;
+  }
+
+  .login-logo-row img {
+    width: 88px;
+    height: 60px;
+  }
+
+  .login-logo-row > i {
+    height: 34px;
+  }
+
+  .login-managed-access {
+    margin-bottom: 12px;
+    padding: 5px 9px;
+  }
+
+  .login-heading {
+    max-width: none;
+    font-size: clamp(1.45rem, 7.2vw, 1.8rem);
+  }
+
+  .login-subheading {
+    margin: 6px 0 15px;
+    font-size: .8rem;
+    line-height: 1.4;
+  }
+
+  .login-mode-toggle {
+    margin-bottom: 13px;
+  }
+
+  .login-field {
+    margin-bottom: 11px;
+  }
+
+  .login-label {
+    margin-bottom: 5px;
+  }
+
+  .login-input {
+    min-height: 48px;
+  }
+
+  .login-submit {
+    min-height: 47px;
+  }
+
+  .login-recovery-row,
+  .login-switch {
+    margin-top: 11px;
+  }
+
+  .login-help-card {
+    margin-top: 14px;
+    padding: 11px;
+  }
+
+  .login-privacy-note {
+    margin-top: 10px;
+  }
+
+  .login-access-panel:has(.login-field-error, .login-global-error, .login-recovery-notice) .login-help-card,
+  .login-access-panel:has(.login-field-error, .login-global-error, .login-recovery-notice) .login-privacy-note {
+    display: none;
   }
 }
 
@@ -613,13 +783,51 @@
     white-space: normal;
   }
 
-  .login-heading {
-    font-size: 1.65rem;
+  .login-recovery-row {
+    flex-wrap: wrap;
+    text-align: center;
+  }
+}
+
+@media (max-width: 760px) and (max-height: 700px) {
+  .login-access-panel {
+    padding-top: 12px;
+    padding-bottom: 12px;
   }
 
-  .login-recovery-row {
-    align-items: flex-start;
-    flex-direction: column;
+  .login-logo-row {
+    margin-bottom: 9px;
+  }
+
+  .login-logo-row img {
+    width: 76px;
+    height: 50px;
+  }
+
+  .login-logo-row small,
+  .login-managed-access,
+  .login-help-card p,
+  .login-privacy-note {
+    display: none;
+  }
+
+  .login-logo-row > i {
+    height: 29px;
+  }
+
+  .login-heading {
+    font-size: 1.42rem;
+  }
+
+  .login-subheading {
+    margin-bottom: 10px;
+    font-size: .76rem;
+  }
+
+  .login-help-card {
+    margin-top: 10px;
+    padding: 8px 10px;
+    align-items: center;
   }
 }
 

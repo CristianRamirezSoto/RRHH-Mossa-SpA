@@ -21,6 +21,12 @@ export function Login() {
   const { login, register } = useAuth();
   const navigate = useNavigate();
 
+  // El acceso funciona como una vista completa, sin heredar el scroll del portal.
+  useEffect(() => {
+    document.documentElement.classList.add('login-viewport-locked');
+    return () => document.documentElement.classList.remove('login-viewport-locked');
+  }, []);
+
   // Foco en el email al cargar y al cambiar de modo
   useEffect(() => {
     if (mode !== 'recovery') emailRef.current?.focus();
