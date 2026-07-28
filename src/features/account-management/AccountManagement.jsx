@@ -3,6 +3,7 @@ import { Icon } from '../../components/AppLayout';
 import { useAuth } from '../../context/AuthContext';
 import {
   createAccount,
+  deleteAccount,
   inviteAccount,
   listAccounts,
   sendAccountRecovery,
@@ -456,6 +457,8 @@ function ManageAccountModal({ account, isCurrentUser, onClose, onChanged }) {
   const [role, setRole] = useState(account.role);
   const [busyAction, setBusyAction] = useState('');
   const [error, setError] = useState('');
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const changed = role !== account.role;
 
   async function saveRole() {
@@ -489,6 +492,19 @@ function ManageAccountModal({ account, isCurrentUser, onClose, onChanged }) {
     setError('');
     try {
       const result = await sendAccountRecovery(account.id);
+      await onChanged(result.message);
+    } catch (actionError) {
+      setError(normalizeError(actionError));
+      setBusyAction('');
+    }
+  }
+
+  async function removeAccount() {
+    if (deleteConfirmation.trim().toLowerCase() !== account.email.toLowerCase()) return;
+    setBusyAction('delete');
+    setError('');
+    try {
+      const result = await deleteAccount(account.id);
       await onChanged(result.message);
     } catch (actionError) {
       setError(normalizeError(actionError));
@@ -554,6 +570,55 @@ function ManageAccountModal({ account, isCurrentUser, onClose, onChanged }) {
           </span>
         </button>
       </div>
+
+      {!isCurrentUser && (
+        <section className="account-danger-zone">
+          <div>
+            <span><Icon name="trash" size={16} /></span>
+            <div>
+              <strong>Eliminar cuenta definitivamente</strong>
+              <p>Revoca el acceso y elimina el usuario de autenticación. La ficha laboral y sus documentos se conservan.</p>
+            </div>
+          </div>
+          {!deleteOpen ? (
+            <button type="button" onClick={() => setDeleteOpen(true)} disabled={Boolean(busyAction)}>
+              Eliminar cuenta
+            </button>
+          ) : (
+            <div className="account-delete-confirmation">
+              <label>
+                Escribe <strong>{account.email}</strong> para confirmar
+                <input
+                  autoFocus
+                  value={deleteConfirmation}
+                  onChange={(event) => setDeleteConfirmation(event.target.value)}
+                  placeholder={account.email}
+                />
+              </label>
+              <div>
+                <button
+                  type="button"
+                  className="cancel"
+                  onClick={() => {
+                    setDeleteOpen(false);
+                    setDeleteConfirmation('');
+                  }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className="confirm-delete"
+                  onClick={removeAccount}
+                  disabled={Boolean(busyAction) || deleteConfirmation.trim().toLowerCase() !== account.email.toLowerCase()}
+                >
+                  {busyAction === 'delete' ? 'Eliminando…' : 'Confirmar eliminación'}
+                </button>
+              </div>
+            </div>
+          )}
+        </section>
+      )}
 
       {error && <div className="account-modal-error" role="alert"><Icon name="alert" size={16} /> {error}</div>}
       <div className="account-modal-actions">
@@ -665,11 +730,13 @@ function auditLabel(action) {
     'account.suspended': 'Cuenta suspendida',
     'account.reactivated': 'Cuenta reactivada',
     'account.recovery_sent': 'Recuperación enviada',
+    'account.deleted': 'Cuenta eliminada',
   }[action] || 'Cuenta actualizada';
 }
 
 function auditIcon(action) {
   if (action?.includes('suspended')) return 'userMinus';
+  if (action?.includes('deleted')) return 'trash';
   if (action?.includes('role')) return 'shield';
   if (action?.includes('recovery') || action?.includes('invited')) return 'mail';
   return 'user';

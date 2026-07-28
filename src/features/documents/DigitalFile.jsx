@@ -2,11 +2,14 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Icon } from '../../components/AppLayout';
-import { deleteRow, insertRow, subscribeRows, updateRow } from '../../services/supabaseData';
+import { insertRow, subscribeRows, updateRow } from '../../services/supabaseData';
+import {
+  deleteManagedDocument,
+  requestDocumentDownload,
+} from '../../services/documentActions';
 import {
   createDocumentStoragePath,
   deleteDocumentFile,
-  getDocumentDownloadUrl,
   uploadDocumentFile,
 } from '../../services/documentStorage';
 
@@ -208,6 +211,7 @@ function EmployeeFile({ employee, documents, canManage, currentUser, onBack }) {
   const [form, setForm] = useState(emptyForm);
   const [file, setFile] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [downloadingId, setDownloadingId] = useState('');
   const [deletingId, setDeletingId] = useState('');
   const [message, setMessage] = useState('');
   const fileInput = useRef(null);
@@ -332,11 +336,23 @@ function EmployeeFile({ employee, documents, canManage, currentUser, onBack }) {
   }
 
   async function downloadDocument(item) {
+    if (downloadingId) return;
+    setDownloadingId(item.id);
+    setMessage('');
     try {
-      const url = await getDocumentDownloadUrl(item.storagePath);
-      window.open(url, '_blank', 'noopener');
+      const result = await requestDocumentDownload(item.id);
+      const link = document.createElement('a');
+      link.href = result.downloadUrl;
+      link.download = result.fileName || item.fileName || 'documento';
+      link.rel = 'noopener';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setMessage(`Descarga preparada: ${result.fileName || item.fileName}.`);
     } catch (error) {
       setMessage(`No se pudo descargar: ${error.message}`);
+    } finally {
+      setDownloadingId('');
     }
   }
 
@@ -346,13 +362,8 @@ function EmployeeFile({ employee, documents, canManage, currentUser, onBack }) {
     setDeletingId(item.id);
     setMessage('');
     try {
-      await deleteRow('documents', item.id);
-      try {
-        await deleteDocumentFile(item.storagePath);
-        setMessage('Documento eliminado correctamente.');
-      } catch (storageError) {
-        setMessage(`Documento eliminado del expediente. El archivo no pudo limpiarse de Storage: ${storageError.message}`);
-      }
+      const result = await deleteManagedDocument(item.id);
+      setMessage(result.message);
     } catch (error) {
       setMessage(`No se pudo eliminar: ${error.message}`);
     } finally {
@@ -513,10 +524,25 @@ function EmployeeFile({ employee, documents, canManage, currentUser, onBack }) {
                 {item.observations && <p className="document-notes">{item.observations}</p>}
               </div>
               <div className="document-actions">
-                <button type="button" onClick={() => downloadDocument(item)} title="Descargar"><Icon name="download" /></button>
+                <button
+                  className="document-action-download"
+                  type="button"
+                  onClick={() => downloadDocument(item)}
+                  title="Descargar documento"
+                  disabled={Boolean(downloadingId || deletingId)}
+                >
+                  <Icon name="download" size={16} />
+                  <span>{downloadingId === item.id ? 'Preparando…' : 'Descargar'}</span>
+                </button>
                 {canManage && (
-                  <button type="button" onClick={() => toggleWorkerVisibility(item)} title={item.visibleToWorker === false ? 'Hacer visible' : 'Ocultar al trabajador'}>
-                    <Icon name={item.visibleToWorker === false ? 'eye' : 'eyeOff'} />
+                  <button
+                    type="button"
+                    onClick={() => toggleWorkerVisibility(item)}
+                    title={item.visibleToWorker === false ? 'Hacer visible' : 'Ocultar al trabajador'}
+                    disabled={Boolean(downloadingId || deletingId)}
+                  >
+                    <Icon name={item.visibleToWorker === false ? 'eye' : 'eyeOff'} size={16} />
+                    <span>{item.visibleToWorker === false ? 'Mostrar' : 'Ocultar'}</span>
                   </button>
                 )}
                 {canManage && (
@@ -525,9 +551,10 @@ function EmployeeFile({ employee, documents, canManage, currentUser, onBack }) {
                     type="button"
                     onClick={() => removeDocument(item)}
                     title={deletingId === item.id ? 'Eliminando…' : 'Eliminar'}
-                    disabled={Boolean(deletingId)}
+                    disabled={Boolean(downloadingId || deletingId)}
                   >
-                    <Icon name="trash" />
+                    <Icon name="trash" size={16} />
+                    <span>{deletingId === item.id ? 'Eliminando…' : 'Eliminar'}</span>
                   </button>
                 )}
               </div>
@@ -543,7 +570,12 @@ function EmployeeFile({ employee, documents, canManage, currentUser, onBack }) {
           <p>{canManage ? 'Sube el primer documento de este trabajador.' : 'Recibirás una notificación cuando se agreguen documentos.'}</p>
         </section>
       )}
-      {message && !showUpload && <p className="form-message error">{message}</p>}
+      {message && !showUpload && (
+        <p className={`document-feedback ${/^No se pudo|^Selecciona|^El archivo|^Sube /i.test(message) ? 'error' : 'success'}`} role="status">
+          <Icon name={/^No se pudo/i.test(message) ? 'alert' : 'check'} size={16} />
+          {message}
+        </p>
+      )}
 
       {showUpload && (
         <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setShowUpload(false)}>

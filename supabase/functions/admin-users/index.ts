@@ -30,6 +30,8 @@ Deno.serve(async (req) => {
         return json(await updateRole(admin, actor, body));
       case 'set-status':
         return json(await setStatus(admin, actor, body));
+      case 'delete':
+        return json(await deleteAccount(admin, actor, body));
       case 'send-recovery':
         return json(await sendRecovery(admin, actor, body));
       default:
@@ -262,6 +264,37 @@ async function setStatus(admin, actor, body) {
   return {
     ok: true,
     message: status === 'suspended' ? 'Cuenta suspendida.' : 'Cuenta reactivada.',
+  };
+}
+
+async function deleteAccount(admin, actor, body) {
+  const userId = requiredId(body.userId);
+  if (userId === actor.id) throw httpError(400, 'No puedes eliminar tu propia cuenta.');
+
+  const target = await getAuthUser(admin, userId);
+  const profile = await getProfile(admin, userId);
+  if (profile?.role === 'admin') await ensureAnotherActiveAdmin(admin, userId);
+
+  const { error: deleteError } = await admin.auth.admin.deleteUser(userId, false);
+  if (deleteError) throw deleteError;
+
+  const { error: auditError } = await admin.from('account_audit_log').insert({
+    actor_user_id: actor.id,
+    actor_email: actor.email,
+    target_user_id: null,
+    target_email: target.email || profile?.email || '',
+    action: 'account.deleted',
+    changes: {
+      role: profile?.role || target.app_metadata?.app_role || 'employee',
+      previous_status: profile?.account_status || 'active',
+      employee_record_preserved: true,
+    },
+  });
+  if (auditError) console.warn('No se pudo registrar la eliminación en auditoría:', auditError.message);
+
+  return {
+    ok: true,
+    message: 'Cuenta eliminada definitivamente. La ficha laboral y sus documentos se conservaron.',
   };
 }
 

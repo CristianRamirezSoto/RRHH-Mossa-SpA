@@ -42,6 +42,10 @@ export function setAccountStatus(userId, status) {
   return invoke('set-status', { userId, status });
 }
 
+export function deleteAccount(userId) {
+  return invoke('delete', { userId });
+}
+
 export function sendAccountRecovery(userId) {
   return invoke('send-recovery', {
     userId,

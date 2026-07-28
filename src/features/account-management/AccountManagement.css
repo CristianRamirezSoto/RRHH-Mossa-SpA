@@ -973,6 +973,124 @@
 .account-secondary-actions strong { font-size: .66rem; }
 .account-secondary-actions small { margin-top: 3px; color: #899791; font-size: .56rem; }
 
+.account-danger-zone {
+  margin: 16px 22px 0;
+  padding: 14px;
+  border: 1px solid #efd0d0;
+  border-radius: 14px;
+  background: linear-gradient(120deg, #fff8f8, #fff);
+}
+
+.account-danger-zone > div:first-child {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.account-danger-zone > div:first-child > span {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  color: #a94848;
+  background: #fdeaea;
+}
+
+.account-danger-zone strong,
+.account-danger-zone p {
+  margin: 0;
+}
+
+.account-danger-zone strong {
+  color: #763737;
+  font-size: .69rem;
+}
+
+.account-danger-zone p {
+  margin-top: 4px;
+  color: #936767;
+  font-size: .6rem;
+  line-height: 1.5;
+}
+
+.account-danger-zone > button {
+  min-height: 36px;
+  margin-top: 12px;
+  padding: 0 12px;
+  border: 1px solid #e3aaaa;
+  border-radius: 10px;
+  color: #9b3f3f;
+  background: #fff;
+  font-size: .63rem;
+  font-weight: 850;
+}
+
+.account-delete-confirmation {
+  margin-top: 13px;
+  padding-top: 13px;
+  border-top: 1px solid #f0dcdc;
+}
+
+.account-delete-confirmation label {
+  display: grid;
+  gap: 7px;
+  color: #835656;
+  font-size: .61rem;
+}
+
+.account-delete-confirmation input {
+  width: 100%;
+  min-height: 40px;
+  padding: 0 11px;
+  border: 1px solid #dfb7b7;
+  border-radius: 10px;
+  outline: 0;
+  color: #623737;
+  background: #fff;
+  font: inherit;
+  font-size: .7rem;
+}
+
+.account-delete-confirmation input:focus {
+  border-color: #bc6666;
+  box-shadow: 0 0 0 3px rgba(177, 77, 77, .1);
+}
+
+.account-delete-confirmation > div {
+  margin-top: 9px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+.account-delete-confirmation button {
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 9px;
+  font-size: .62rem;
+  font-weight: 850;
+}
+
+.account-delete-confirmation .cancel {
+  border: 1px solid #e4d9d9;
+  color: #785e5e;
+  background: #fff;
+}
+
+.account-delete-confirmation .confirm-delete {
+  border: 0;
+  color: #fff;
+  background: #a94444;
+}
+
+.account-delete-confirmation button:disabled,
+.account-danger-zone > button:disabled {
+  opacity: .48;
+  cursor: not-allowed;
+}
+
 .account-empty {
   padding: 46px 20px;
   display: grid;

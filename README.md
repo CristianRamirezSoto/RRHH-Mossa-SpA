@@ -41,18 +41,20 @@ Para una instalación nueva, ejecuta en SQL Editor:
 4. `supabase/sql/03_document_permissions.sql`
 5. `supabase/sql/04_secure_employee_directory.sql`
 6. `supabase/sql/05_account_management.sql`
+7. `supabase/sql/06_secure_document_actions.sql`
 
 ### Administración de cuentas
 
 El panel `Usuarios y permisos` utiliza una Edge Function protegida para operar con Supabase Auth.
-Después de ejecutar `05_account_management.sql`, despliega la función:
+Después de ejecutar las migraciones, despliega las funciones:
 
 ```bash
 supabase functions deploy admin-users
+supabase functions deploy document-actions
 ```
 
-La función valida el JWT del solicitante, comprueba que su perfil sea un administrador activo y
-mantiene la clave secreta exclusivamente en Supabase. El autorregistro público queda desactivado
+Las funciones validan el JWT del solicitante, comprueban el rol para cada operación y
+mantienen la clave secreta exclusivamente en Supabase. El autorregistro público queda desactivado
 por defecto; puede habilitarse explícitamente con `VITE_ALLOW_SELF_REGISTRATION=true`.
 
 Cuando el panel esté operativo, desactiva también `Allow new users to sign up` en

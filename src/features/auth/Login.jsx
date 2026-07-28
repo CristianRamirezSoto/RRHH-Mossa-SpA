@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { appConfig } from '../../config/env';
+import { supabase, supabaseConfigured } from '../../lib/supabase';
 import './Login.css';
 
 export function Login() {
@@ -13,6 +14,8 @@ export function Login() {
   const [fieldErrors, setFieldErrors] = useState({});
   const [busy, setBusy] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [recovering, setRecovering] = useState(false);
+  const [recoveryNotice, setRecoveryNotice] = useState('');
 
   const emailRef = useRef(null);
   const { login, register } = useAuth();
@@ -20,10 +23,21 @@ export function Login() {
 
   // Foco en el email al cargar y al cambiar de modo
   useEffect(() => {
-    emailRef.current?.focus();
+    if (mode !== 'recovery') emailRef.current?.focus();
     setError('');
     setFieldErrors({});
   }, [mode]);
+
+  useEffect(() => {
+    const { data } = supabase?.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setMode('recovery');
+        setPassword('');
+        setRecoveryNotice('Define una contraseña nueva para recuperar tu acceso.');
+      }
+    }) || { data: { subscription: null } };
+    return () => data.subscription?.unsubscribe();
+  }, []);
 
   function validateEmail(val) {
     if (!val) return 'El correo es requerido.';
@@ -33,7 +47,9 @@ export function Login() {
 
   function validatePassword(val) {
     if (!val) return 'La contraseña es requerida.';
-    if (val.length < 6) return 'Mínimo 6 caracteres.';
+    if (val.length < (mode === 'recovery' ? 10 : 6)) {
+      return mode === 'recovery' ? 'La nueva contraseña debe tener al menos 10 caracteres.' : 'Mínimo 6 caracteres.';
+    }
     return '';
   }
 
@@ -46,7 +62,7 @@ export function Login() {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    const emailErr = validateEmail(email);
+    const emailErr = mode === 'recovery' ? '' : validateEmail(email);
     const passErr = validatePassword(password);
     if (emailErr || passErr) {
       setFieldErrors({ email: emailErr, password: passErr });
@@ -56,6 +72,16 @@ export function Login() {
     setError('');
     setBusy(true);
     try {
+      if (mode === 'recovery') {
+        if (!supabaseConfigured || !supabase) throw new Error('Supabase no está configurado.');
+        const { error: updateError } = await supabase.auth.updateUser({ password });
+        if (updateError) throw updateError;
+        await supabase.auth.signOut();
+        setMode('login');
+        setPassword('');
+        setRecoveryNotice('Contraseña actualizada. Ya puedes iniciar sesión.');
+        return;
+      }
       if (mode === 'login') {
         await login(email, password);
       } else {
@@ -75,6 +101,32 @@ export function Login() {
     }
   }
 
+  async function requestRecovery() {
+    const emailError = validateEmail(email);
+    if (emailError) {
+      setFieldErrors((current) => ({ ...current, email: emailError }));
+      emailRef.current?.focus();
+      return;
+    }
+    if (!supabaseConfigured || !supabase) {
+      setError('Supabase no está configurado.');
+      return;
+    }
+
+    setRecovering(true);
+    setError('');
+    setRecoveryNotice('');
+    const { error: recoveryError } = await supabase.auth.resetPasswordForEmail(email.toLowerCase(), {
+      redirectTo: `${window.location.origin}/login`,
+    });
+    if (recoveryError) {
+      setError(traducirError(recoveryError.code || recoveryError.message));
+    } else {
+      setRecoveryNotice('Te enviamos un enlace seguro para recuperar tu contraseña. Revisa también la carpeta de spam.');
+    }
+    setRecovering(false);
+  }
+
   function switchMode() {
     if (!appConfig.allowSelfRegistration) return;
     setEmail('');
@@ -85,30 +137,18 @@ export function Login() {
   }
 
   const isLogin = mode === 'login';
+  const isRecovery = mode === 'recovery';
 
   return (
     <div className={`login-root${success ? ' login-root--success' : ''}`}>
-      {/* Panel izquierdo — branding */}
-      <div className="login-panel-left" aria-hidden="true">
-        <div className="login-orb login-orb--1" />
-        <div className="login-orb login-orb--2" />
-        <div className="login-brand">
-          <div className="login-brand-mark">M</div>
-          <div>
-            <p className="login-brand-name">Mossaspa</p>
-            <p className="login-brand-tagline">Personas & cultura</p>
-          </div>
-        </div>
-        <blockquote className="login-quote">
-          "Un lugar pensado para que lo que importa esté siempre a la mano."
-        </blockquote>
-      </div>
-
-      {/* Panel derecho — formulario */}
-      <div className="login-panel-right">
+      <main className="login-access-panel">
         <div className="login-form-wrap">
-          {/* Toggle modo */}
-          {appConfig.allowSelfRegistration ? (
+          <div className="login-logo-row">
+            <img src="/images/mossa-logo.png" alt="Construcción Mossa SpA" />
+            <span>Portal de personas</span>
+          </div>
+
+          {!isRecovery && appConfig.allowSelfRegistration ? (
             <div className="login-mode-toggle">
               <button
                 type="button"
@@ -125,70 +165,68 @@ export function Login() {
                 Crear cuenta
               </button>
             </div>
-          ) : (
+          ) : !isRecovery ? (
             <div className="login-managed-access">
               <IconLock />
               <span>Acceso administrado por RRHH</span>
             </div>
-          )}
+          ) : null}
 
           <h1 className="login-heading">
-            {isLogin ? 'Bienvenido de vuelta' : 'Empieza ahora'}
+            {isRecovery ? 'Crea una nueva contraseña' : isLogin ? 'Bienvenido al Portal Mossa' : 'Crea tu cuenta'}
           </h1>
           <p className="login-subheading">
-            {isLogin
-              ? 'Ingresa tus datos para continuar.'
-              : 'Crea tu cuenta en segundos, sin tarjeta.'}
+            {isRecovery
+              ? 'Usa al menos 10 caracteres y evita reutilizar una clave anterior.'
+              : isLogin
+                ? 'Ingresa tus credenciales para acceder a tu espacio de trabajo.'
+                : 'Completa tus datos para solicitar acceso.'}
           </p>
 
           <form onSubmit={handleSubmit} noValidate>
-            {/* Email */}
-            <div className={`login-field${fieldErrors.email ? ' login-field--error' : ''}`}>
-              <label htmlFor="email" className="login-label">Correo electrónico</label>
-              <div className="login-input-wrap">
-                <span className="login-input-icon">
-                  <IconEmail />
-                </span>
-                <input
-                  id="email"
-                  ref={emailRef}
-                  type="email"
-                  className="login-input"
-                  value={email}
-                  placeholder="tu@correo.com"
-                  autoComplete="email"
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    if (fieldErrors.email) setFieldErrors(f => ({ ...f, email: '' }));
-                  }}
-                  onBlur={() => handleBlur('email')}
-                  aria-describedby={fieldErrors.email ? 'email-err' : undefined}
-                />
+            {!isRecovery && (
+              <div className={`login-field${fieldErrors.email ? ' login-field--error' : ''}`}>
+                <label htmlFor="email" className="login-label">Correo corporativo</label>
+                <div className="login-input-wrap">
+                  <span className="login-input-icon"><IconEmail /></span>
+                  <input
+                    id="email"
+                    ref={emailRef}
+                    type="email"
+                    className="login-input"
+                    value={email}
+                    placeholder="nombre@mossaspa.cl"
+                    autoComplete="email"
+                    onChange={(event) => {
+                      setEmail(event.target.value);
+                      if (fieldErrors.email) setFieldErrors((current) => ({ ...current, email: '' }));
+                    }}
+                    onBlur={() => handleBlur('email')}
+                    aria-describedby={fieldErrors.email ? 'email-err' : undefined}
+                  />
+                </div>
+                {fieldErrors.email && (
+                  <p className="login-field-error" id="email-err" role="alert">
+                    <IconAlert /> {fieldErrors.email}
+                  </p>
+                )}
               </div>
-              {fieldErrors.email && (
-                <p className="login-field-error" id="email-err" role="alert">
-                  <IconAlert /> {fieldErrors.email}
-                </p>
-              )}
-            </div>
+            )}
 
-            {/* Contraseña */}
             <div className={`login-field${fieldErrors.password ? ' login-field--error' : ''}`}>
-              <label htmlFor="password" className="login-label">Contraseña</label>
+              <label htmlFor="password" className="login-label">{isRecovery ? 'Nueva contraseña' : 'Contraseña'}</label>
               <div className="login-input-wrap">
-                <span className="login-input-icon">
-                  <IconLock />
-                </span>
+                <span className="login-input-icon"><IconLock /></span>
                 <input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   className="login-input"
                   value={password}
-                  placeholder="Mínimo 6 caracteres"
+                  placeholder={isRecovery ? 'Mínimo 10 caracteres' : 'Ingresa tu contraseña'}
                   autoComplete={isLogin ? 'current-password' : 'new-password'}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    if (fieldErrors.password) setFieldErrors(f => ({ ...f, password: '' }));
+                  onChange={(event) => {
+                    setPassword(event.target.value);
+                    if (fieldErrors.password) setFieldErrors((current) => ({ ...current, password: '' }));
                   }}
                   onBlur={() => handleBlur('password')}
                   aria-describedby={fieldErrors.password ? 'pass-err' : undefined}
@@ -198,7 +236,6 @@ export function Login() {
                   className="login-eye-btn"
                   onClick={() => setShowPassword(v => !v)}
                   aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                  tabIndex={0}
                 >
                   {showPassword ? <IconEyeOff /> : <IconEye />}
                 </button>
@@ -210,35 +247,78 @@ export function Login() {
               )}
             </div>
 
-            {/* Error global */}
             {error && (
               <div className="login-global-error" role="alert">
                 <IconAlert /> {error}
               </div>
             )}
 
-            {/* Submit */}
+            {recoveryNotice && (
+              <div className="login-recovery-notice" role="status">
+                <span>✓</span> {recoveryNotice}
+              </div>
+            )}
+
             <button type="submit" className="login-submit" disabled={busy}>
               {busy ? (
                 <span className="login-spinner" aria-label="Procesando" />
               ) : (
-                isLogin ? 'Entrar' : 'Crear mi cuenta'
+                isRecovery ? 'Actualizar contraseña' : isLogin ? 'Ingresar al portal' : 'Crear mi cuenta'
               )}
             </button>
           </form>
 
-          {appConfig.allowSelfRegistration ? (
+          {isLogin && (
+            <div className="login-recovery-row">
+              <span>¿Problemas con tu clave?</span>
+              <button type="button" onClick={requestRecovery} disabled={recovering}>
+                {recovering ? 'Enviando…' : 'Recupérala aquí'}
+              </button>
+            </div>
+          )}
+
+          {!isRecovery && appConfig.allowSelfRegistration ? (
             <p className="login-switch">
               {isLogin ? '¿Todavía no tienes cuenta?' : '¿Ya tienes cuenta?'}{' '}
               <button type="button" className="login-switch-btn" onClick={switchMode}>
                 {isLogin ? 'Regístrate gratis' : 'Inicia sesión'}
               </button>
             </p>
-          ) : (
-            <p className="login-switch">Si necesitas acceso o recuperar tu cuenta, comunícate con RRHH.</p>
-          )}
+          ) : null}
+
+          <section className="login-help-card">
+            <span><IconLock /></span>
+            <div>
+              <strong>¿Necesitas ayuda para acceder?</strong>
+              <p>RRHH puede activar, suspender o recuperar tu cuenta de forma segura.</p>
+            </div>
+          </section>
+
+          <p className="login-privacy-note">Acceso privado · Datos protegidos · Sesión segura</p>
         </div>
-      </div>
+      </main>
+
+      <aside className="login-visual-panel" aria-hidden="true">
+        <div className="login-visual-shade" />
+        <div className="login-visual-brand">
+          <span className="login-visual-mark">M</span>
+          <div><strong>Mossa SpA</strong><small>Construcción que conecta personas</small></div>
+        </div>
+        <article className="login-hero-card">
+          <span className="login-hero-kicker">Portal de colaboradores</span>
+          <h2>Tu trabajo, en un solo lugar.</h2>
+          <p>Documentos, solicitudes, liquidaciones y equipo disponibles de forma simple y segura.</p>
+          <div className="login-hero-features">
+            <span><i>✓</i> Expediente digital</span>
+            <span><i>✓</i> Gestión transparente</span>
+            <span><i>✓</i> Información protegida</span>
+          </div>
+        </article>
+        <div className="login-security-card">
+          <IconLock />
+          <span><strong>Tu información es personal</strong><small>No compartas tus credenciales con terceros.</small></span>
+        </div>
+      </aside>
     </div>
   );
 }
