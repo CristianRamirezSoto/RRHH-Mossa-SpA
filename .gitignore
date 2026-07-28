@@ -13,3 +13,4 @@ ui-debug.log
 emulator-data
 supabase/functions/.env
 supabase/functions/.env.local
+supabase/.temp/
