@@ -73,6 +73,100 @@
   font-size: .62rem;
 }
 
+.data-update-fields {
+  padding: 14px;
+  border: 1px solid #cfe1e6;
+  border-radius: 15px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  background: #f3f8fa;
+}
+
+.data-update-heading {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.data-update-heading > span {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  color: var(--petroleum-600);
+  background: var(--petroleum-100);
+}
+
+.data-update-heading strong,
+.data-update-heading small {
+  display: block;
+}
+
+.data-update-heading strong {
+  color: #173c48;
+  font-size: .71rem;
+}
+
+.data-update-heading small {
+  margin-top: 3px;
+  color: #71858d;
+  line-height: 1.45;
+  font-size: .61rem;
+}
+
+.data-change-preview {
+  margin-top: 10px;
+  padding: 9px 11px;
+  border: 1px solid #d7e5e9;
+  border-radius: 12px;
+  display: grid;
+  gap: 7px;
+  background: #f7fafb;
+}
+
+.data-change-preview > div {
+  display: grid;
+  grid-template-columns: minmax(105px, .7fr) minmax(90px, 1fr) auto minmax(90px, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.data-change-preview strong {
+  color: #415d67;
+  font-size: .61rem;
+}
+
+.data-change-preview span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #7c8e95;
+  font-size: .62rem;
+}
+
+.data-change-preview span small {
+  margin: 0 4px 0 0;
+  display: inline;
+  color: #9aa8ad;
+  font-size: .54rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.data-change-preview .proposed {
+  color: #155e70;
+  font-weight: 800;
+}
+
+.data-change-preview svg {
+  color: #9eb0b6;
+}
+
 .request-sla {
   width: fit-content;
   padding: 4px 7px;
@@ -102,6 +196,18 @@
   }
 
   .request-process-strip > svg {
+    display: none;
+  }
+
+  .data-update-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .data-change-preview > div {
+    grid-template-columns: 1fr;
+  }
+
+  .data-change-preview svg {
     display: none;
   }
 }

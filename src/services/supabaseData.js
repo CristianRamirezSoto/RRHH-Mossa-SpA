@@ -72,6 +72,7 @@ const tableMap = {
     evidenceStoragePath: 'evidence_storage_path',
     evidenceContentType: 'evidence_content_type',
     evidenceSize: 'evidence_size',
+    requestedChanges: 'requested_changes',
     createdBy: 'created_by',
     reviewedBy: 'reviewed_by',
     createdAt: 'created_at',
@@ -223,4 +224,15 @@ export async function updateProfile(userId, payload) {
     .single();
   if (error) throw error;
   return fromDb('profiles', data);
+}
+
+export async function resolveEmployeeDataUpdate(requestId, { status, comment = '' }) {
+  ensureSupabase();
+  const { data, error } = await supabase.rpc('resolve_employee_data_update', {
+    p_request_id: requestId,
+    p_status: status,
+    p_comment: String(comment || '').slice(0, 360),
+  });
+  if (error) throw error;
+  return fromDb('hrRequests', data);
 }

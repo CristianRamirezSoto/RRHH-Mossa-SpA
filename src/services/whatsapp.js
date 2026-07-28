@@ -46,10 +46,13 @@ export function buildRequestMessage(request) {
     '*Nueva solicitud RRHH Mossaspa*',
     `Tipo: ${request.type}`,
     `Trabajador: ${request.employeeName}`,
-    `Desde: ${formatDate(request.fromDate)}`,
-    `Hasta: ${formatDate(request.toDate)}`,
     `Estado: ${request.status || 'Pendiente'}`,
   ];
+  if (requiresDateRange(request.type)) {
+    lines.splice(3, 0, `Desde: ${formatDate(request.fromDate)}`, `Hasta: ${formatDate(request.toDate)}`);
+  } else {
+    lines.splice(3, 0, `Registrada: ${formatDate(request.fromDate)}`);
+  }
   if (request.detail) lines.push(`Detalle: ${request.detail}`);
   lines.push('', 'Revisar en el sistema RRHH.');
   return lines.join('\n');
@@ -67,4 +70,8 @@ function formatDate(value) {
   return value
     ? new Intl.DateTimeFormat('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(`${value}T12:00:00`))
     : 'Sin fecha';
+}
+
+function requiresDateRange(type) {
+  return ['Vacaciones', 'Permiso', 'Licencia', 'Horas extra', 'Ausencia'].includes(type);
 }

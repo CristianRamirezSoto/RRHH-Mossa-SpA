@@ -124,7 +124,17 @@ create table if not exists public.hr_requests (
   employee_id uuid not null references public.employees(id) on delete cascade,
   employee_name text not null,
   owner_email text not null,
-  type text not null check (type in ('Vacaciones', 'Permiso', 'Licencia', 'Horas extra', 'Ausencia')),
+  type text not null check (type in (
+    'Vacaciones',
+    'Permiso',
+    'Licencia',
+    'Horas extra',
+    'Ausencia',
+    'Certificado laboral',
+    'Regularización documental',
+    'Actualización de datos',
+    'Consulta de remuneración'
+  )),
   from_date date not null,
   to_date date not null,
   detail text default '',
@@ -135,6 +145,7 @@ create table if not exists public.hr_requests (
   evidence_storage_path text default '',
   evidence_content_type text default '',
   evidence_size bigint not null default 0,
+  requested_changes jsonb not null default '{}'::jsonb,
   created_by uuid references auth.users(id) on delete set null,
   reviewed_by uuid references auth.users(id) on delete set null,
   created_at timestamptz not null default now(),
@@ -147,6 +158,7 @@ alter table public.hr_requests add column if not exists evidence_file_name text 
 alter table public.hr_requests add column if not exists evidence_storage_path text default '';
 alter table public.hr_requests add column if not exists evidence_content_type text default '';
 alter table public.hr_requests add column if not exists evidence_size bigint not null default 0;
+alter table public.hr_requests add column if not exists requested_changes jsonb not null default '{}'::jsonb;
 
 create table if not exists public.payroll (
   id text primary key,

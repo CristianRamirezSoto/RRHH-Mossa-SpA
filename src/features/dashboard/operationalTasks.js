@@ -23,7 +23,7 @@ export function buildAdminTasks({
         icon: 'calendar',
         priority: age >= 3 ? 'critical' : 'high',
         title: `${request.type} de ${request.employeeName}`,
-        detail: `${formatDate(request.fromDate)} al ${formatDate(request.toDate)}`,
+        detail: requestDetail(request),
         reason: age ? `Espera hace ${age} día${age === 1 ? '' : 's'}` : 'Recibida hoy',
         action: 'Resolver',
         to: '/solicitudes',
@@ -176,6 +176,13 @@ function formatDate(value) {
   return value
     ? new Intl.DateTimeFormat('es-CL', { day: '2-digit', month: 'short' }).format(new Date(`${value}T12:00:00`))
     : 'Sin fecha';
+}
+
+function requestDetail(request) {
+  const usesRange = ['Vacaciones', 'Permiso', 'Licencia', 'Horas extra', 'Ausencia'].includes(request.type);
+  return usesRange
+    ? `${formatDate(request.fromDate)} al ${formatDate(request.toDate)}`
+    : `Registrada ${formatDate(request.fromDate)}`;
 }
 
 function formatPeriod(period) {

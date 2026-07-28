@@ -7,6 +7,7 @@ alter table public.hr_requests add column if not exists evidence_file_name text 
 alter table public.hr_requests add column if not exists evidence_storage_path text default '';
 alter table public.hr_requests add column if not exists evidence_content_type text default '';
 alter table public.hr_requests add column if not exists evidence_size bigint not null default 0;
+alter table public.hr_requests add column if not exists requested_changes jsonb not null default '{}'::jsonb;
 
 notify pgrst, 'reload schema';
 

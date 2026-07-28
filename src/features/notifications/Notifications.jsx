@@ -236,7 +236,7 @@ function requestAlerts(requests, isAdmin) {
     source: 'Solicitudes',
     severity: isOlderThan(item.createdAt, 2) ? 'danger' : 'warning',
     title: `${item.type} pendiente`,
-    message: `${item.employeeName} solicito desde ${formatDate(item.fromDate)} hasta ${formatDate(item.toDate)}.`,
+    message: requestAlertMessage(item),
     nextStep: isAdmin ? 'Aprobar, rechazar o notificar al supervisor por WhatsApp.' : 'Queda pendiente de revision por RRHH.',
     actionLabel: 'Abrir solicitudes',
     link: '/solicitudes',
@@ -295,6 +295,13 @@ function countForFilter(items, filter) {
   if (filter === 'Leidas') return items.filter((item) => item.read).length;
   if (filter === 'Accion requerida') return items.filter((item) => !item.read && item.requiresAction).length;
   return items.filter((item) => !item.read && item.source === filter).length;
+}
+
+function requestAlertMessage(request) {
+  const usesRange = ['Vacaciones', 'Permiso', 'Licencia', 'Horas extra', 'Ausencia'].includes(request.type);
+  return usesRange
+    ? `${request.employeeName} solicitó desde ${formatDate(request.fromDate)} hasta ${formatDate(request.toDate)}.`
+    : `${request.employeeName} registró esta solicitud el ${formatDate(request.fromDate)}.`;
 }
 
 function expiryState(value) {

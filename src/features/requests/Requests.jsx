@@ -1,7 +1,12 @@
 import { useRef, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Icon } from '../../components/AppLayout';
-import { insertRow, subscribeRows, updateRow } from '../../services/supabaseData';
+import {
+  insertRow,
+  resolveEmployeeDataUpdate,
+  subscribeRows,
+  updateRow,
+} from '../../services/supabaseData';
 import { notifyRequestByWhatsApp, whatsappConfigured, whatsappModeLabel } from '../../services/whatsapp';
 import {
   createRequestEvidencePath,
@@ -12,17 +17,18 @@ import {
 import './Requests.css';
 
 const requestTypes = [
-  { value: 'Vacaciones', guidance: 'Indica el periodo completo y cualquier coordinación relevante.', targetDays: 3 },
-  { value: 'Permiso', guidance: 'Explica el motivo y las fechas u horas que necesitas.', targetDays: 2 },
-  { value: 'Licencia', guidance: 'Registra el periodo informado y agrega el detalle disponible.', targetDays: 2 },
-  { value: 'Horas extra', guidance: 'Indica jornada, motivo y responsable que solicitó el trabajo.', targetDays: 2 },
-  { value: 'Ausencia', guidance: 'Informa el periodo y el motivo para mantener la trazabilidad.', targetDays: 2 },
-  { value: 'Certificado laboral', guidance: 'Describe el certificado que necesitas y para qué trámite será usado.', targetDays: 2 },
-  { value: 'Regularización documental', guidance: 'Nombra el documento faltante, vencido o incorrecto de tu expediente.', targetDays: 3 },
-  { value: 'Actualización de datos', guidance: 'Indica qué dato debe corregirse y cuál es la información correcta.', targetDays: 2 },
-  { value: 'Consulta de remuneración', guidance: 'Incluye el periodo y el concepto específico que necesitas revisar.', targetDays: 3 },
+  { value: 'Vacaciones', guidance: 'Indica el periodo completo y cualquier coordinación relevante.', targetDays: 3, requiresDates: true },
+  { value: 'Permiso', guidance: 'Explica el motivo y las fechas u horas que necesitas.', targetDays: 2, requiresDates: true },
+  { value: 'Licencia', guidance: 'Registra el periodo informado y agrega el detalle disponible.', targetDays: 2, requiresDates: true },
+  { value: 'Horas extra', guidance: 'Indica jornada, motivo y responsable que solicitó el trabajo.', targetDays: 2, requiresDates: true },
+  { value: 'Ausencia', guidance: 'Informa el periodo y el motivo para mantener la trazabilidad.', targetDays: 2, requiresDates: true },
+  { value: 'Certificado laboral', guidance: 'Describe el certificado que necesitas y para qué trámite será usado.', targetDays: 2, requiresDates: false },
+  { value: 'Regularización documental', guidance: 'Nombra el documento faltante, vencido o incorrecto de tu expediente.', targetDays: 3, requiresDates: false },
+  { value: 'Actualización de datos', guidance: 'Propón teléfono y contacto de emergencia. Al aprobar, la ficha se actualiza automáticamente.', targetDays: 2, requiresDates: false },
+  { value: 'Consulta de remuneración', guidance: 'Incluye el periodo y el concepto específico que necesitas revisar.', targetDays: 3, requiresDates: false },
 ];
 const emptyForm = { employeeId: '', type: 'Vacaciones', fromDate: '', toDate: '', detail: '' };
+const emptyDataChanges = { phone: '', emergencyContact: '', emergencyPhone: '' };
 
 export function Requests() {
   const { user, profile } = useAuth();
@@ -31,6 +37,7 @@ export function Requests() {
   const [requests, setRequests] = useState([]);
   const [filter, setFilter] = useState('Pendiente');
   const [form, setForm] = useState(emptyForm);
+  const [dataChanges, setDataChanges] = useState(emptyDataChanges);
   const [message, setMessage] = useState('');
   const [messageTone, setMessageTone] = useState('');
   const [saving, setSaving] = useState(false);
@@ -80,8 +87,16 @@ export function Requests() {
       setMessageTone('error');
       return;
     }
-    if (!form.fromDate || !form.toDate) {
+    if (selectedRequestType.requiresDates && (!form.fromDate || !form.toDate)) {
       setMessage('Indica fecha de inicio y termino.');
+      setMessageTone('error');
+      return;
+    }
+    const requestedChanges = form.type === 'Actualización de datos'
+      ? cleanRequestedChanges(dataChanges)
+      : {};
+    if (form.type === 'Actualización de datos' && !Object.keys(requestedChanges).length) {
+      setMessage('Indica al menos un dato nuevo para actualizar.');
       setMessageTone('error');
       return;
     }
@@ -89,14 +104,16 @@ export function Requests() {
     setMessage('');
     setMessageTone('');
     try {
+      const today = new Date().toISOString().slice(0, 10);
       const request = await insertRow('hrRequests', {
         employeeId: selectedEmployee.id,
         employeeName: selectedEmployee.name,
         ownerEmail: selectedEmployee.email.toLowerCase(),
         type: form.type,
-        fromDate: form.fromDate,
-        toDate: form.toDate,
+        fromDate: selectedRequestType.requiresDates ? form.fromDate : today,
+        toDate: selectedRequestType.requiresDates ? form.toDate : today,
         detail: form.detail.trim(),
+        requestedChanges,
         status: 'Pendiente',
         createdBy: user.id,
         createdAt: new Date().toISOString(),
@@ -104,6 +121,7 @@ export function Requests() {
       });
       const whatsappResult = await notifyRequestByWhatsApp(withSupervisor(request));
       setForm({ ...emptyForm, employeeId: isAdmin ? '' : selectedEmployee.id });
+      setDataChanges(emptyDataChanges);
       setMessage(whatsappResult.message);
       setMessageTone(whatsappResult.ok ? 'success' : 'warning');
     } catch (error) {
@@ -123,7 +141,8 @@ export function Requests() {
   async function updateStatus(event) {
     event.preventDefault();
     if (!resolution) return;
-    if (resolution.status === 'Aprobada' && !resolutionFile) {
+    const isDataUpdate = resolution.request.type === 'Actualización de datos';
+    if (resolution.status === 'Aprobada' && !resolutionFile && !isDataUpdate) {
       setMessage('Para aprobar debes adjuntar el documento de respaldo.');
       setMessageTone('error');
       return;
@@ -134,6 +153,21 @@ export function Requests() {
     setMessageTone('');
     let storagePath = '';
     try {
+      if (isDataUpdate) {
+        await resolveEmployeeDataUpdate(resolution.request.id, {
+          status: resolution.status,
+          comment: resolutionComment,
+        });
+        setResolution(null);
+        setResolutionComment('');
+        setResolutionFile(null);
+        setMessage(resolution.status === 'Aprobada'
+          ? 'Solicitud aprobada y ficha laboral actualizada automáticamente.'
+          : 'Solicitud de actualización rechazada.');
+        setMessageTone('success');
+        return;
+      }
+
       const payload = {
         status: resolution.status,
         resolutionComment: resolutionComment.trim(),
@@ -262,8 +296,50 @@ export function Requests() {
                 <small>{selectedRequestType.guidance} Atención sugerida: {selectedRequestType.targetDays} días.</small>
               </span>
             </div>
-            <label className="field"><span>Desde</span><input type="date" value={form.fromDate} onChange={(event) => setForm((current) => ({ ...current, fromDate: event.target.value }))} /></label>
-            <label className="field"><span>Hasta</span><input type="date" value={form.toDate} onChange={(event) => setForm((current) => ({ ...current, toDate: event.target.value }))} /></label>
+            {form.type === 'Actualización de datos' && (
+              <div className="field-wide data-update-fields">
+                <div className="data-update-heading">
+                  <span><Icon name="edit" size={17} /></span>
+                  <div>
+                    <strong>Datos que quieres modificar</strong>
+                    <small>Completa solamente los campos que deben cambiar. El administrador verá el valor actual y el propuesto.</small>
+                  </div>
+                </div>
+                <label className="field">
+                  <span>Nuevo teléfono</span>
+                  <input
+                    value={dataChanges.phone}
+                    placeholder={selectedEmployee?.phone || '+56 9…'}
+                    maxLength="40"
+                    onChange={(event) => setDataChanges((current) => ({ ...current, phone: event.target.value }))}
+                  />
+                </label>
+                <label className="field">
+                  <span>Nuevo contacto de emergencia</span>
+                  <input
+                    value={dataChanges.emergencyContact}
+                    placeholder={selectedEmployee?.emergencyContact || 'Nombre y relación'}
+                    maxLength="100"
+                    onChange={(event) => setDataChanges((current) => ({ ...current, emergencyContact: event.target.value }))}
+                  />
+                </label>
+                <label className="field">
+                  <span>Nuevo teléfono de emergencia</span>
+                  <input
+                    value={dataChanges.emergencyPhone}
+                    placeholder={selectedEmployee?.emergencyPhone || '+56 9…'}
+                    maxLength="40"
+                    onChange={(event) => setDataChanges((current) => ({ ...current, emergencyPhone: event.target.value }))}
+                  />
+                </label>
+              </div>
+            )}
+            {selectedRequestType.requiresDates && (
+              <>
+                <label className="field"><span>Desde</span><input type="date" value={form.fromDate} onChange={(event) => setForm((current) => ({ ...current, fromDate: event.target.value }))} /></label>
+                <label className="field"><span>Hasta</span><input type="date" value={form.toDate} onChange={(event) => setForm((current) => ({ ...current, toDate: event.target.value }))} /></label>
+              </>
+            )}
             <label className="field field-wide"><span>Detalle</span><textarea rows="3" value={form.detail} maxLength="360" placeholder={selectedRequestType.guidance} onChange={(event) => setForm((current) => ({ ...current, detail: event.target.value }))} /></label>
           </div>
           {message && <p className={`form-message ${messageTone}`}>{message}</p>}
@@ -290,8 +366,14 @@ export function Requests() {
                 <span className={`request-state request-${slug(item.status)}`}>{item.status}</span>
                 <div>
                   <strong>{item.type}</strong>
-                  <p>{item.employeeName} - {formatDate(item.fromDate)} al {formatDate(item.toDate)}</p>
+                  <p>{requestDescription(item)}</p>
                   {item.detail && <small>{item.detail}</small>}
+                  {item.type === 'Actualización de datos' && (
+                    <DataUpdatePreview
+                      changes={item.requestedChanges}
+                      employee={employees.find((employee) => employee.id === item.employeeId)}
+                    />
+                  )}
                   <div className="request-history">
                     <span>Creada {formatTimestamp(item.createdAt)}</span>
                     {item.status === 'Pendiente' && (
@@ -332,20 +414,28 @@ export function Requests() {
             </div>
             <div className="request-resolution-summary">
               <strong>{resolution.request.type}</strong>
-              <span>{formatDate(resolution.request.fromDate)} al {formatDate(resolution.request.toDate)}</span>
+              <span>{requestDescription(resolution.request)}</span>
               {resolution.request.detail && <p>{resolution.request.detail}</p>}
+              {resolution.request.type === 'Actualización de datos' && (
+                <DataUpdatePreview
+                  changes={resolution.request.requestedChanges}
+                  employee={employees.find((employee) => employee.id === resolution.request.employeeId)}
+                />
+              )}
             </div>
             <div className="form-grid">
               <label className="field field-wide">
                 <span>Comentario de resolucion</span>
                 <textarea rows="3" maxLength="360" value={resolutionComment} onChange={(event) => setResolutionComment(event.target.value)} placeholder="Ej: aprobado por disponibilidad operacional" />
               </label>
-              <label className="upload-zone field-wide" onClick={() => fileInput.current?.click()}>
-                <input ref={fileInput} type="file" hidden onChange={(event) => setResolutionFile(event.target.files?.[0] || null)} />
-                <Icon name="upload" size={24} />
-                <strong>{resolutionFile ? resolutionFile.name : resolution.status === 'Aprobada' ? 'Adjuntar respaldo obligatorio' : 'Adjuntar respaldo opcional'}</strong>
-                <span>{resolutionFile ? formatBytes(resolutionFile.size) : 'PDF, imagen o documento'}</span>
-              </label>
+              {resolution.request.type !== 'Actualización de datos' && (
+                <label className="upload-zone field-wide" onClick={() => fileInput.current?.click()}>
+                  <input ref={fileInput} type="file" hidden onChange={(event) => setResolutionFile(event.target.files?.[0] || null)} />
+                  <Icon name="upload" size={24} />
+                  <strong>{resolutionFile ? resolutionFile.name : resolution.status === 'Aprobada' ? 'Adjuntar respaldo obligatorio' : 'Adjuntar respaldo opcional'}</strong>
+                  <span>{resolutionFile ? formatBytes(resolutionFile.size) : 'PDF, imagen o documento'}</span>
+                </label>
+              )}
             </div>
             <div className="modal-actions">
               <button className="secondary-button" type="button" onClick={() => setResolution(null)}>Cancelar</button>
@@ -362,6 +452,44 @@ function formatDate(value) { return value ? new Intl.DateTimeFormat('es-CL', { d
 function formatTimestamp(value) { return value ? new Intl.DateTimeFormat('es-CL', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(value)) : ''; }
 function formatBytes(bytes = 0) { if (!bytes) return '0 KB'; const units = ['B', 'KB', 'MB', 'GB']; const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1); return `${(bytes / 1024 ** index).toFixed(index ? 1 : 0)} ${units[index]}`; }
 function slug(value = '') { return value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '-'); }
+
+function DataUpdatePreview({ changes = {}, employee }) {
+  const fields = [
+    { key: 'phone', label: 'Teléfono', current: employee?.phone },
+    { key: 'emergencyContact', label: 'Contacto de emergencia', current: employee?.emergencyContact },
+    { key: 'emergencyPhone', label: 'Teléfono de emergencia', current: employee?.emergencyPhone },
+  ].filter((field) => Object.prototype.hasOwnProperty.call(changes || {}, field.key));
+
+  if (!fields.length) return null;
+  return (
+    <div className="data-change-preview">
+      {fields.map((field) => (
+        <div key={field.key}>
+          <strong>{field.label}</strong>
+          <span><small>Actual</small>{field.current || 'Sin registrar'}</span>
+          <Icon name="arrow" size={13} />
+          <span className="proposed"><small>Propuesto</small>{changes[field.key]}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function cleanRequestedChanges(changes) {
+  return Object.fromEntries(
+    Object.entries(changes)
+      .map(([key, value]) => [key, String(value || '').trim()])
+      .filter(([, value]) => value),
+  );
+}
+
+function requestDescription(request) {
+  const requiresDates = requestTypes.find((item) => item.value === request.type)?.requiresDates;
+  return requiresDates
+    ? `${request.employeeName} · ${formatDate(request.fromDate)} al ${formatDate(request.toDate)}`
+    : `${request.employeeName} · registrada ${formatDate(request.fromDate)}`;
+}
+
 function requestSla(request) {
   const targetDays = requestTypes.find((item) => item.value === request.type)?.targetDays || 3;
   const createdAt = new Date(request.createdAt || 0);
