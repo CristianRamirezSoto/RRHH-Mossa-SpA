@@ -9,8 +9,19 @@ import {
   getDocumentDownloadUrl,
   uploadDocumentFile,
 } from '../../services/documentStorage';
+import './Requests.css';
 
-const requestTypes = ['Vacaciones', 'Permiso', 'Licencia', 'Horas extra', 'Ausencia'];
+const requestTypes = [
+  { value: 'Vacaciones', guidance: 'Indica el periodo completo y cualquier coordinación relevante.', targetDays: 3 },
+  { value: 'Permiso', guidance: 'Explica el motivo y las fechas u horas que necesitas.', targetDays: 2 },
+  { value: 'Licencia', guidance: 'Registra el periodo informado y agrega el detalle disponible.', targetDays: 2 },
+  { value: 'Horas extra', guidance: 'Indica jornada, motivo y responsable que solicitó el trabajo.', targetDays: 2 },
+  { value: 'Ausencia', guidance: 'Informa el periodo y el motivo para mantener la trazabilidad.', targetDays: 2 },
+  { value: 'Certificado laboral', guidance: 'Describe el certificado que necesitas y para qué trámite será usado.', targetDays: 2 },
+  { value: 'Regularización documental', guidance: 'Nombra el documento faltante, vencido o incorrecto de tu expediente.', targetDays: 3 },
+  { value: 'Actualización de datos', guidance: 'Indica qué dato debe corregirse y cuál es la información correcta.', targetDays: 2 },
+  { value: 'Consulta de remuneración', guidance: 'Incluye el periodo y el concepto específico que necesitas revisar.', targetDays: 3 },
+];
 const emptyForm = { employeeId: '', type: 'Vacaciones', fromDate: '', toDate: '', detail: '' };
 
 export function Requests() {
@@ -51,8 +62,16 @@ export function Requests() {
     });
   }, [isAdmin, user.email]);
 
-  const visible = useMemo(() => requests.filter((item) => filter === 'Todas' || item.status === filter), [requests, filter]);
+  const visible = useMemo(() => {
+    const filtered = requests.filter((item) => filter === 'Todas' || item.status === filter);
+    return [...filtered].sort((left, right) => {
+      const leftDate = new Date(left.createdAt || 0).getTime();
+      const rightDate = new Date(right.createdAt || 0).getTime();
+      return isAdmin && filter === 'Pendiente' ? leftDate - rightDate : rightDate - leftDate;
+    });
+  }, [filter, isAdmin, requests]);
   const selectedEmployee = employees.find((item) => item.id === form.employeeId);
+  const selectedRequestType = requestTypes.find((item) => item.value === form.type) || requestTypes[0];
 
   async function submitRequest(event) {
     event.preventDefault();
@@ -188,6 +207,16 @@ export function Requests() {
         </div>
       </header>
 
+      {!isAdmin && (
+        <section className="request-process-strip" aria-label="Etapas de una solicitud">
+          <div><span>1</span><strong>Registra</strong><small>Elige el tipo correcto</small></div>
+          <Icon name="arrow" size={16} />
+          <div><span>2</span><strong>Sigue</strong><small>Revisa el estado aquí</small></div>
+          <Icon name="arrow" size={16} />
+          <div><span>3</span><strong>Descarga</strong><small>Recibe el respaldo final</small></div>
+        </section>
+      )}
+
       <section className="hr-workflow-grid">
         <form className="panel request-form-panel" onSubmit={submitRequest}>
           <div className="panel-heading">
@@ -223,12 +252,19 @@ export function Requests() {
             <label className="field">
               <span>Tipo</span>
               <select value={form.type} onChange={(event) => setForm((current) => ({ ...current, type: event.target.value }))}>
-                {requestTypes.map((item) => <option key={item}>{item}</option>)}
+                {requestTypes.map((item) => <option key={item.value} value={item.value}>{item.value}</option>)}
               </select>
             </label>
+            <div className="field-wide request-type-guidance">
+              <Icon name="help" size={17} />
+              <span>
+                <strong>{selectedRequestType.value}</strong>
+                <small>{selectedRequestType.guidance} Atención sugerida: {selectedRequestType.targetDays} días.</small>
+              </span>
+            </div>
             <label className="field"><span>Desde</span><input type="date" value={form.fromDate} onChange={(event) => setForm((current) => ({ ...current, fromDate: event.target.value }))} /></label>
             <label className="field"><span>Hasta</span><input type="date" value={form.toDate} onChange={(event) => setForm((current) => ({ ...current, toDate: event.target.value }))} /></label>
-            <label className="field field-wide"><span>Detalle</span><textarea rows="3" value={form.detail} maxLength="360" onChange={(event) => setForm((current) => ({ ...current, detail: event.target.value }))} /></label>
+            <label className="field field-wide"><span>Detalle</span><textarea rows="3" value={form.detail} maxLength="360" placeholder={selectedRequestType.guidance} onChange={(event) => setForm((current) => ({ ...current, detail: event.target.value }))} /></label>
           </div>
           {message && <p className={`form-message ${messageTone}`}>{message}</p>}
           <div className="modal-actions">
@@ -258,6 +294,9 @@ export function Requests() {
                   {item.detail && <small>{item.detail}</small>}
                   <div className="request-history">
                     <span>Creada {formatTimestamp(item.createdAt)}</span>
+                    {item.status === 'Pendiente' && (
+                      <span className={`request-sla ${requestSla(item).tone}`}>{requestSla(item).label}</span>
+                    )}
                     {item.resolvedAt && <span>Resuelta {formatTimestamp(item.resolvedAt)}</span>}
                     {item.resolutionComment && <span>{item.resolutionComment}</span>}
                     {item.evidenceFileName && (
@@ -323,3 +362,11 @@ function formatDate(value) { return value ? new Intl.DateTimeFormat('es-CL', { d
 function formatTimestamp(value) { return value ? new Intl.DateTimeFormat('es-CL', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(value)) : ''; }
 function formatBytes(bytes = 0) { if (!bytes) return '0 KB'; const units = ['B', 'KB', 'MB', 'GB']; const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1); return `${(bytes / 1024 ** index).toFixed(index ? 1 : 0)} ${units[index]}`; }
 function slug(value = '') { return value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '-'); }
+function requestSla(request) {
+  const targetDays = requestTypes.find((item) => item.value === request.type)?.targetDays || 3;
+  const createdAt = new Date(request.createdAt || 0);
+  const age = Math.max(0, Math.floor((Date.now() - createdAt.getTime()) / 86400000));
+  if (age > targetDays) return { tone: 'overdue', label: `${age} días esperando · priorizar` };
+  if (age === targetDays) return { tone: 'warning', label: 'Revisión sugerida hoy' };
+  return { tone: 'ontrack', label: `Atención sugerida: ${targetDays} días` };
+}

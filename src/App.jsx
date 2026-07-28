@@ -34,6 +34,7 @@ const AccountManagement = lazyNamed(
   () => import('./features/account-management/AccountManagement'),
   'AccountManagement',
 );
+const HelpCenter = lazyNamed(() => import('./features/help/HelpCenter'), 'HelpCenter');
 
 function lazyNamed(loader, exportName) {
   return lazy(() => loader().then((module) => ({ default: module[exportName] })));
@@ -73,6 +74,7 @@ export default function App() {
               <Route path="/solicitudes" element={<Requests />} />
               <Route path="/notificaciones" element={<Notifications />} />
               <Route path="/perfil" element={<Profile />} />
+              <Route path="/ayuda" element={<HelpCenter />} />
             </Route>
             <Route path="*" element={<HomeRedirect />} />
           </Routes>

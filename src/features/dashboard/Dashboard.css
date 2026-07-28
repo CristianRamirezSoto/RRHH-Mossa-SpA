@@ -1,0 +1,232 @@
+.admin-operations-summary {
+  margin-bottom: 18px;
+  padding: 18px 20px;
+  border: 1px solid var(--portal-border);
+  border-radius: 19px;
+  display: grid;
+  grid-template-columns: auto minmax(180px, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  background: rgba(255, 255, 255, .94);
+  box-shadow: 0 10px 34px rgba(29, 54, 45, .045);
+}
+
+.admin-health-score {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.admin-health-score > span {
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
+  display: grid;
+  place-items: center;
+  color: var(--petroleum-600);
+  background: var(--petroleum-100);
+}
+
+.admin-health-score small,
+.admin-health-score strong {
+  display: block;
+}
+
+.admin-health-score small {
+  color: #7b8c84;
+  font-size: .62rem;
+  font-weight: 700;
+}
+
+.admin-health-score strong {
+  margin-top: 2px;
+  color: #103744;
+  font: 800 1.05rem 'Manrope';
+}
+
+.admin-health-progress {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e8efeb;
+}
+
+.admin-health-progress i {
+  height: 100%;
+  border-radius: inherit;
+  display: block;
+  background: linear-gradient(90deg, var(--petroleum-700), var(--petroleum-500));
+  transition: width .3s ease;
+}
+
+.admin-health-legend {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.admin-health-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #65776e;
+  white-space: nowrap;
+  font-size: .62rem;
+  font-weight: 700;
+}
+
+.admin-health-legend i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #6c8fa4;
+}
+
+.admin-health-legend .critical i { background: #b65353; }
+.admin-health-legend .high i { background: #c58a2e; }
+
+.admin-operations-summary > p {
+  grid-column: 1 / -1;
+  margin: -4px 0 0;
+  color: #839189;
+  font-size: .65rem;
+}
+
+.admin-task-list {
+  padding: 0 23px 17px;
+}
+
+.admin-task-row {
+  min-height: 91px;
+  padding: 12px 0;
+  border-top: 1px solid #edf2ef;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  color: inherit;
+  text-decoration: none;
+  transition: background .18s ease;
+}
+
+.admin-task-row:hover {
+  margin-inline: -12px;
+  padding-inline: 12px;
+  border-radius: 14px;
+  background: var(--petroleum-50);
+}
+
+.admin-task-heading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.admin-task-heading strong {
+  color: #173c48;
+  font-size: .76rem;
+}
+
+.admin-task-heading small {
+  color: #8a9891;
+  font-size: .59rem;
+}
+
+.admin-task-row p {
+  margin: 4px 0 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #687a71;
+  font-size: .67rem;
+}
+
+.admin-task-row em {
+  color: #8a9891;
+  font-size: .61rem;
+  font-style: normal;
+}
+
+.admin-task-priority {
+  padding: 5px 8px;
+  border-radius: 999px;
+  font-size: .56rem;
+  font-weight: 800;
+}
+
+.admin-task-priority.critical {
+  color: #9d3f3f;
+  background: #fbe7e7;
+}
+
+.admin-task-priority.high {
+  color: #8b5c16;
+  background: #fbefd5;
+}
+
+.admin-task-priority.medium {
+  color: #376a88;
+  background: #e7f1f6;
+}
+
+.admin-task-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--petroleum-600);
+  white-space: nowrap;
+  font-size: .63rem;
+  font-weight: 800;
+}
+
+@media (max-width: 1080px) {
+  .admin-operations-summary {
+    grid-template-columns: auto minmax(160px, 1fr);
+  }
+
+  .admin-health-legend {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 650px) {
+  .admin-operations-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-health-legend,
+  .admin-operations-summary > p {
+    grid-column: auto;
+  }
+
+  .admin-task-row {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .admin-task-priority {
+    grid-column: 2;
+    width: fit-content;
+  }
+
+  .admin-task-action {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+  }
+}
+
+@media (max-width: 440px) {
+  .admin-task-row {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .admin-task-priority {
+    grid-column: 2;
+  }
+
+  .admin-task-action {
+    grid-column: 2;
+    grid-row: auto;
+  }
+}

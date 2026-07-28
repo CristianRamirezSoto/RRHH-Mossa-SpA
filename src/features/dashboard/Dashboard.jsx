@@ -3,16 +3,20 @@ import { Link } from 'react-router-dom';
 import { Icon } from '../../components/AppLayout';
 import { useAuth } from '../../context/AuthContext';
 import { subscribeRows } from '../../services/supabaseData';
+import { buildAdminTasks, taskSummary } from './operationalTasks';
+import './Dashboard.css';
 
 export function Dashboard() {
   const { profile, user } = useAuth();
   const [employees, setEmployees] = useState([]);
   const [requests, setRequests] = useState([]);
   const [documents, setDocuments] = useState([]);
+  const [payroll, setPayroll] = useState([]);
 
   useEffect(() => subscribeRows('employees', setEmployees, { orderBy: 'name', ascending: true }), []);
   useEffect(() => subscribeRows('hrRequests', setRequests, { orderBy: 'createdAt', ascending: false }), []);
   useEffect(() => subscribeRows('documents', setDocuments, { orderBy: 'uploadedAt', ascending: false }), []);
+  useEffect(() => subscribeRows('payroll', setPayroll, { orderBy: 'updatedAt', ascending: false }), []);
 
   const stats = useMemo(() => {
     const active = employees.filter((item) => item.status === 'Activo').length;
@@ -25,6 +29,12 @@ export function Dashboard() {
     });
     return { active, areas, pendingRequests, documentAlerts };
   }, [employees, requests, documents]);
+
+  const tasks = useMemo(
+    () => buildAdminTasks({ employees, documents, requests, payroll }),
+    [documents, employees, payroll, requests],
+  );
+  const operations = useMemo(() => taskSummary(tasks), [tasks]);
 
   const firstName = (profile?.displayName || user?.email || 'equipo').split(/[\s@]/)[0];
 
@@ -47,7 +57,14 @@ export function Dashboard() {
         <AdminMetric icon="users" label="Dotación activa" value={stats.active} detail={`${stats.areas} áreas registradas`} to="/colaboradores" tone="green" />
         <AdminMetric icon="calendar" label="Solicitudes pendientes" value={stats.pendingRequests.length} detail="Esperando revisión" to="/solicitudes" tone="amber" />
         <AdminMetric icon="alert" label="Alertas documentales" value={stats.documentAlerts.length} detail="Vencidos o por vencer" to="/expedientes" tone="red" />
-        <AdminMetric icon="camera" label="Control de asistencia" value="En línea" detail="Marcaje facial disponible" to="/asistencia" tone="blue" compact />
+        <AdminMetric
+          icon="alert"
+          label="Bandeja operativa"
+          value={operations.total}
+          detail={operations.critical ? `${operations.critical} críticos primero` : 'Sin tareas críticas'}
+          to="/notificaciones"
+          tone={operations.critical ? 'red' : 'blue'}
+        />
       </section>
 
       <section className="admin-quick-strip" aria-label="Acciones administrativas rápidas">
@@ -58,24 +75,54 @@ export function Dashboard() {
         <Link to="/marcaje"><Icon name="camera" size={16} /> Abrir marcaje</Link>
       </section>
 
-      <section className="admin-dashboard-grid">
-        <article className="portal-panel">
-          <div className="portal-panel-heading">
-            <div><p className="eyebrow">Prioridades</p><h2>Solicitudes por resolver</h2></div>
-            <Link to="/solicitudes">Gestionar todas</Link>
+      <section className="admin-operations-summary" aria-label="Salud operativa de recursos humanos">
+        <div className="admin-health-score">
+          <span>
+            <Icon name={operations.critical ? 'alert' : 'shield'} size={19} />
+          </span>
+          <div>
+            <small>Salud operativa</small>
+            <strong>{operations.health}%</strong>
           </div>
-          <div className="admin-priority-list">
-            {stats.pendingRequests.slice(0, 5).map((request) => (
-              <div className="admin-priority-row" key={request.id}>
-                <span className="portal-activity-icon tone-amber"><Icon name="calendar" size={18} /></span>
+        </div>
+        <div className="admin-health-progress" aria-label={`${operations.health}% de salud operativa`}>
+          <i style={{ width: `${operations.health}%` }} />
+        </div>
+        <div className="admin-health-legend">
+          <span className="critical"><i /> {operations.critical} críticas</span>
+          <span className="high"><i /> {operations.high} prioritarias</span>
+          <span className="medium"><i /> {operations.medium} preventivas</span>
+        </div>
+        <p>La bandeja ordena primero lo vencido y lo que lleva más tiempo esperando.</p>
+      </section>
+
+      <section className="admin-dashboard-grid">
+        <article className="portal-panel admin-operation-panel">
+          <div className="portal-panel-heading">
+            <div><p className="eyebrow">Prioridades unificadas</p><h2>Bandeja operativa</h2></div>
+            <Link to="/notificaciones">Ver centro de avisos</Link>
+          </div>
+          <div className="admin-task-list">
+            {tasks.slice(0, 6).map((task) => (
+              <Link className="admin-task-row" key={task.id} to={task.to}>
+                <span className={`portal-activity-icon tone-${priorityTone(task.priority)}`}>
+                  <Icon name={task.icon} size={18} />
+                </span>
                 <div>
-                  <strong>{request.employeeName}</strong>
-                  <p>{request.type} · {formatDateRange(request.fromDate, request.toDate)}</p>
+                  <span className="admin-task-heading">
+                    <strong>{task.title}</strong>
+                    <small>{task.category}</small>
+                  </span>
+                  <p>{task.detail}</p>
+                  <em>{task.reason}</em>
                 </div>
-                <span className="request-state request-pendiente">Pendiente</span>
-              </div>
+                <span className={`admin-task-priority ${task.priority}`}>
+                  {priorityLabel(task.priority)}
+                </span>
+                <span className="admin-task-action">{task.action} <Icon name="arrow" size={14} /></span>
+              </Link>
             ))}
-            {!stats.pendingRequests.length && <DashboardEmpty icon="check" text="No hay solicitudes pendientes. Tu bandeja está al día." />}
+            {!tasks.length && <DashboardEmpty icon="check" text="No hay acciones pendientes. La operación está al día." />}
           </div>
         </article>
 
@@ -127,17 +174,18 @@ function DashboardEmpty({ icon, text }) {
   return <div className="portal-empty"><Icon name={icon} size={24} /><p>{text}</p></div>;
 }
 
-function formatDateRange(from, to) {
-  const formatter = new Intl.DateTimeFormat('es-CL', { day: '2-digit', month: 'short' });
-  const start = from ? formatter.format(new Date(`${from}T12:00:00`)) : 'Sin fecha';
-  const end = to ? formatter.format(new Date(`${to}T12:00:00`)) : 'Sin fecha';
-  return `${start} – ${end}`;
-}
-
 function getInitials(name = '') {
   return name.split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || '—';
 }
 
 function slug(value = '') {
   return value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '-');
+}
+
+function priorityTone(priority) {
+  return { critical: 'red', high: 'amber', medium: 'blue' }[priority] || 'blue';
+}
+
+function priorityLabel(priority) {
+  return { critical: 'Crítica', high: 'Prioritaria', medium: 'Preventiva' }[priority] || 'Revisar';
 }

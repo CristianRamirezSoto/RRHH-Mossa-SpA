@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Icon } from '../../components/AppLayout';
-import { documentTypes } from '../documents/DigitalFile';
+import { documentTypeFor, requiredDocumentTypes } from '../documents/documentCatalog';
 import { subscribeRows, updateRow } from '../../services/supabaseData';
 
 const filters = ['Accion requerida', 'Documentos', 'Solicitudes', 'Remuneraciones', 'Biometria', 'Sistema', 'Leidas'];
@@ -192,7 +192,7 @@ function documentAlerts(employees, documents, isAdmin) {
   employees.filter((item) => item.status !== 'Inactivo').forEach((employee) => {
     const employeeDocs = documents.filter((item) => item.employeeId === employee.id);
     const present = new Set(employeeDocs.map((doc) => documentTypeFor(doc.category)?.id).filter(Boolean));
-    const missing = documentTypes.filter((type) => type.required && !present.has(type.id));
+    const missing = requiredDocumentTypes.filter((type) => !present.has(type.id));
     if (missing.length) {
       rows.push({
         id: `doc-missing-${employee.id}`,
@@ -295,10 +295,6 @@ function countForFilter(items, filter) {
   if (filter === 'Leidas') return items.filter((item) => item.read).length;
   if (filter === 'Accion requerida') return items.filter((item) => !item.read && item.requiresAction).length;
   return items.filter((item) => !item.read && item.source === filter).length;
-}
-
-function documentTypeFor(category) {
-  return documentTypes.find((item) => item.id === category || item.label === category || item.aliases?.includes(category));
 }
 
 function expiryState(value) {

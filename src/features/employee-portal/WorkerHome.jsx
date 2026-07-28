@@ -3,17 +3,8 @@ import { Link } from 'react-router-dom';
 import { Icon } from '../../components/AppLayout';
 import { useAuth } from '../../context/AuthContext';
 import { subscribeRows } from '../../services/supabaseData';
-
-const requiredDocumentTypes = [
-  'Curriculum vitae',
-  'Cedula de identidad',
-  'Certificado de antecedentes',
-  'Certificado de estudios',
-  'Afiliacion AFP',
-  'Afiliacion Salud',
-  'Certificado de residencia',
-  'Contrato',
-];
+import { requiredDocumentStatus } from '../documents/documentCatalog';
+import './WorkerHome.css';
 
 export function WorkerHome() {
   const { user, profile } = useAuth();
@@ -54,16 +45,54 @@ export function WorkerHome() {
     ascending: false,
   }), [email]);
 
-  const documentProgress = useMemo(() => {
-    const ready = new Set(documents.map((item) => item.category));
-    const count = requiredDocumentTypes.filter((type) => ready.has(type)).length;
-    return Math.round((count / requiredDocumentTypes.length) * 100);
-  }, [documents]);
+  const documentStatus = useMemo(() => requiredDocumentStatus(documents), [documents]);
+  const documentProgress = documentStatus.completion;
 
   const pendingRequests = requests.filter((item) => item.status === 'Pendiente');
   const unreadNotifications = notifications.filter((item) => !item.read);
   const latestPayment = payroll.find((item) => ['Pendiente pago', 'Pagado'].includes(item.status));
   const firstName = (employee?.name || profile?.displayName || user.email).split(/[\s@]/)[0];
+  const selfServiceSteps = useMemo(() => [
+    {
+      id: 'employee',
+      title: 'Ficha laboral vinculada',
+      detail: employee ? `${employee.position || 'Cargo por completar'} · ${employee.area || 'Área por completar'}` : 'Tu cuenta aún no está asociada a una ficha.',
+      ready: Boolean(employee),
+      to: '/ayuda',
+      action: 'Cómo resolverlo',
+    },
+    {
+      id: 'profile',
+      title: 'Perfil personal actualizado',
+      detail: profile?.displayName ? 'Tu nombre visible está configurado.' : 'Completa tu nombre y datos visibles.',
+      ready: Boolean(profile?.displayName?.trim()),
+      to: '/perfil',
+      action: 'Completar perfil',
+    },
+    {
+      id: 'documents',
+      title: 'Carpeta documental completa',
+      detail: documentStatus.missing.length
+        ? `Faltan ${documentStatus.missing.length} documentos obligatorios.`
+        : 'Todos tus documentos obligatorios están disponibles.',
+      ready: documentStatus.missing.length === 0,
+      to: '/expediente',
+      action: 'Revisar carpeta',
+    },
+    {
+      id: 'notifications',
+      title: 'Novedades revisadas',
+      detail: unreadNotifications.length
+        ? `Tienes ${unreadNotifications.length} avisos pendientes de lectura.`
+        : 'No tienes avisos pendientes.',
+      ready: unreadNotifications.length === 0,
+      to: '/notificaciones',
+      action: 'Ver novedades',
+    },
+  ], [documentStatus.missing.length, employee, profile?.displayName, unreadNotifications.length]);
+  const selfServiceProgress = Math.round(
+    (selfServiceSteps.filter((step) => step.ready).length / selfServiceSteps.length) * 100,
+  );
 
   const activity = useMemo(() => [
     ...documents.slice(0, 2).map((item) => ({
@@ -123,7 +152,8 @@ export function WorkerHome() {
           <Icon name="alert" />
           <div>
             <strong>Falta vincular tu ficha laboral</strong>
-            <p>RRHH debe registrar tu ficha con el correo {user.email}. Mientras tanto, algunas secciones estarán vacías.</p>
+            <p>La ficha debe usar el correo {user.email}. Revisa la guía antes de pedir asistencia.</p>
+            <Link to="/ayuda">Ver cómo resolverlo <Icon name="arrow" size={13} /></Link>
           </div>
         </section>
       )}
@@ -163,6 +193,41 @@ export function WorkerHome() {
           to="/notificaciones"
           tone="purple"
         />
+      </section>
+
+      <section className="worker-self-service-grid" aria-label="Ruta de autoservicio">
+        <article className="portal-panel worker-roadmap">
+          <div className="portal-panel-heading worker-roadmap-heading">
+            <div>
+              <p className="eyebrow">Tu ruta al día</p>
+              <h2>Completa lo necesario sin seguimientos por correo</h2>
+            </div>
+            <strong>{selfServiceProgress}%</strong>
+          </div>
+          <span className="worker-roadmap-progress" aria-label={`${selfServiceProgress}% completado`}>
+            <i style={{ width: `${selfServiceProgress}%` }} />
+          </span>
+          <div className="worker-roadmap-list">
+            {selfServiceSteps.map((step, index) => (
+              <div className={`worker-roadmap-step${step.ready ? ' ready' : ''}`} key={step.id}>
+                <span>{step.ready ? <Icon name="check" size={15} /> : index + 1}</span>
+                <div>
+                  <strong>{step.title}</strong>
+                  <p>{step.detail}</p>
+                </div>
+                {!step.ready && <Link to={step.to}>{step.action} <Icon name="arrow" size={13} /></Link>}
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <article className="worker-help-card">
+          <span><Icon name="help" size={22} /></span>
+          <p className="eyebrow">Respuestas rápidas</p>
+          <h2>Resuelve primero desde tu portal</h2>
+          <p>Encuentra pasos para documentos, solicitudes, liquidaciones, acceso y datos de tu ficha.</p>
+          <Link to="/ayuda">Ir al centro de ayuda <Icon name="arrow" size={15} /></Link>
+        </article>
       </section>
 
       <section className="portal-section">
