@@ -96,7 +96,7 @@ const adminNavigation = [
     label: 'Resumen',
     items: [
       { to: '/panel', label: 'Inicio', icon: 'grid' },
-      { to: '/colaboradores', label: 'Colaboradores', icon: 'users' },
+      { to: '/colaboradores', label: 'Fichas laborales', icon: 'users' },
     ],
   },
   {
@@ -131,6 +131,7 @@ const employeeNavigation = [
     label: 'Mi espacio',
     items: [
       { to: '/inicio', label: 'Inicio', icon: 'grid' },
+      { to: '/mi-ficha', label: 'Mi ficha laboral', icon: 'briefcase' },
       { to: '/personas', label: 'Personas', icon: 'users' },
       { to: '/expediente', label: 'Mis documentos', icon: 'folder' },
       { to: '/solicitudes', label: 'Solicitudes', icon: 'calendar' },

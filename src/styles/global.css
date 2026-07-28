@@ -128,6 +128,14 @@ td { padding: 15px 18px; border-top: 1px solid #edf1ee; color: #526159; font-siz
 .role-logic-card { padding: 12px 13px; border: 1px solid #dce8e2; border-radius: 13px; display: flex; align-items: flex-start; gap: 10px; color: #3f574c; background: #f8fbf9; }
 .role-logic-card strong { display: block; margin-bottom: 2px; color: #24483b; font-size: .76rem; }
 .role-logic-card small { color: #72837a; line-height: 1.4; font-size: .66rem; font-weight: 500; }
+.employee-change-history { display: grid; gap: 8px; }
+.employee-change-history > div { padding: 11px 12px; border: 1px solid #e1eae6; border-radius: 11px; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 10px; background: #f9fbfa; }
+.employee-change-history > div > span { width: 31px; height: 31px; border-radius: 9px; display: grid; place-items: center; color: #176a76; background: #e4f2f4; }
+.employee-change-history p { margin: 0; }
+.employee-change-history strong, .employee-change-history small { display: block; }
+.employee-change-history strong { color: #294a43; font-size: .7rem; }
+.employee-change-history small { margin-top: 3px; color: #83918d; font-size: .61rem; }
+.employee-change-empty { margin: 0; padding: 12px; border: 1px dashed #d9e3de; border-radius: 11px; color: #7b8984; background: #fafcfb; font-size: .68rem; }
 .modal-backdrop { position: fixed; inset: 0; z-index: 20; padding: 24px; display: grid; place-items: center; background: rgba(11,29,23,.52); backdrop-filter: blur(5px); }
 .modal { width: min(680px, 100%); max-height: 92vh; overflow: auto; padding: 26px; border-radius: 20px; background: white; box-shadow: 0 30px 90px rgba(0,0,0,.24); }
 .modal-header { display: flex; justify-content: space-between; align-items: flex-start; }

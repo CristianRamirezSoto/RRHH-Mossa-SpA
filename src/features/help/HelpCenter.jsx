@@ -8,7 +8,7 @@ const workerActions = [
   { to: '/expediente', icon: 'folder', title: 'Descargar documentos', text: 'Accede a contratos, certificados y antecedentes disponibles.' },
   { to: '/solicitudes', icon: 'calendar', title: 'Crear una solicitud', text: 'Registra vacaciones, permisos, certificados o correcciones.' },
   { to: '/mis-pagos', icon: 'wallet', title: 'Revisar liquidaciones', text: 'Consulta periodos liberados y descarga sus respaldos.' },
-  { to: '/perfil', icon: 'user', title: 'Actualizar mi perfil', text: 'Mantén tu nombre y datos visibles correctamente configurados.' },
+  { to: '/mi-ficha', icon: 'briefcase', title: 'Revisar mi ficha', text: 'Actualiza tus contactos y consulta contrato, jornada y supervisor.' },
 ];
 
 const adminActions = [
@@ -36,8 +36,13 @@ const workerTopics = [
   },
   {
     title: 'No veo mi ficha laboral',
-    answer: 'Comprueba que tu cuenta usa el mismo correo registrado en tu ficha. Si coincide, crea una solicitud de Actualización de datos incluyendo tu correo y nombre completo.',
+    answer: 'Entra a Mi ficha laboral. Si no aparece, comprueba que tu cuenta use el mismo correo corporativo registrado por Administración y solicita la vinculación desde el Centro de ayuda.',
     keywords: 'vincular ficha correo cuenta datos',
+  },
+  {
+    title: '¿Qué datos puedo actualizar yo?',
+    answer: 'Desde Mi ficha laboral puedes cambiar teléfono, correo personal, dirección, comuna y contacto de emergencia. Para nombre legal, RUT, cargo, contrato, jornada, sueldo o supervisor debes crear una Corrección de ficha laboral.',
+    keywords: 'actualizar telefono direccion comuna emergencia contrato sueldo supervisor',
   },
   {
     title: 'No aparece una liquidación',
@@ -71,6 +76,11 @@ const adminTopics = [
     title: '¿Cómo cierro una solicitud?',
     answer: 'Abre Solicitudes, revisa la más antigua, aprueba o rechaza y agrega un comentario claro. Al aprobar, adjunta el respaldo para que el trabajador pueda descargarlo sin pedirlo por otro canal.',
     keywords: 'aprobar rechazar solicitud respaldo trazabilidad',
+  },
+  {
+    title: '¿Quién modifica cada parte de la ficha laboral?',
+    answer: 'El trabajador mantiene sus datos personales desde Mi ficha laboral. Administración controla los antecedentes legales, organizacionales y contractuales. Cada modificación queda registrada en el historial de la ficha.',
+    keywords: 'ficha datos administrador trabajador historial contrato contacto',
   },
   {
     title: '¿Cómo mantengo los expedientes ordenados?',

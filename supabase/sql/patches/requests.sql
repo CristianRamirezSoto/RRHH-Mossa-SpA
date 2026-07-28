@@ -15,6 +15,22 @@ alter table public.hr_requests add column if not exists supervisor_comment text 
 alter table public.hr_requests add column if not exists supervisor_reviewed_at timestamptz;
 alter table public.hr_requests add column if not exists supervisor_reviewed_by uuid references auth.users(id) on delete set null;
 
+alter table public.hr_requests drop constraint if exists hr_requests_type_check;
+alter table public.hr_requests
+  add constraint hr_requests_type_check
+  check (type in (
+    'Vacaciones',
+    'Permiso',
+    'Licencia',
+    'Horas extra',
+    'Ausencia',
+    'Certificado laboral',
+    'Regularización documental',
+    'Actualización de datos',
+    'Corrección de ficha laboral',
+    'Consulta de remuneración'
+  ));
+
 notify pgrst, 'reload schema';
 
 select

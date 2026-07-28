@@ -1,4 +1,5 @@
 import { useRef, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Icon } from '../../components/AppLayout';
 import {
@@ -25,21 +26,32 @@ const requestTypes = [
   { value: 'Ausencia', guidance: 'Informa el periodo y el motivo para mantener la trazabilidad.', targetDays: 2, requiresDates: true },
   { value: 'Certificado laboral', guidance: 'Describe el certificado que necesitas y para qué trámite será usado.', targetDays: 2, requiresDates: false },
   { value: 'Regularización documental', guidance: 'Nombra el documento faltante, vencido o incorrecto de tu expediente.', targetDays: 3, requiresDates: false },
-  { value: 'Actualización de datos', guidance: 'Propón teléfono y contacto de emergencia. Al aprobar, la ficha se actualiza automáticamente.', targetDays: 2, requiresDates: false },
+  { value: 'Corrección de ficha laboral', guidance: 'Indica el antecedente laboral incorrecto, el valor correcto y por qué debe modificarse.', targetDays: 3, requiresDates: false },
   { value: 'Consulta de remuneración', guidance: 'Incluye el periodo y el concepto específico que necesitas revisar.', targetDays: 3, requiresDates: false },
 ];
 const emptyForm = { employeeId: '', type: 'Vacaciones', fromDate: '', toDate: '', detail: '' };
-const emptyDataChanges = { phone: '', emergencyContact: '', emergencyPhone: '' };
+const emptyCorrection = { field: '', proposedValue: '' };
+const correctionFields = [
+  'Nombre legal',
+  'RUT',
+  'Cargo o área',
+  'Supervisor',
+  'Lugar de trabajo',
+  'Contrato o jornada',
+  'Sueldo o remuneración',
+  'Otro antecedente',
+];
 
 export function Requests() {
   const { user, profile } = useAuth();
+  const [searchParams] = useSearchParams();
   const isAdmin = profile?.role === 'admin';
   const [employees, setEmployees] = useState([]);
   const [requests, setRequests] = useState([]);
   const [filter, setFilter] = useState('Pendiente');
   const [viewMode, setViewMode] = useState('mine');
   const [form, setForm] = useState(emptyForm);
-  const [dataChanges, setDataChanges] = useState(emptyDataChanges);
+  const [correction, setCorrection] = useState(emptyCorrection);
   const [message, setMessage] = useState('');
   const [messageTone, setMessageTone] = useState('');
   const [saving, setSaving] = useState(false);
@@ -71,6 +83,13 @@ export function Requests() {
     });
   }, []);
 
+  useEffect(() => {
+    const requestedType = searchParams.get('tipo');
+    if (requestTypes.some((item) => item.value === requestedType)) {
+      setForm((current) => ({ ...current, type: requestedType }));
+    }
+  }, [searchParams]);
+
   const ownEmployee = employees.find((item) => item.email?.toLowerCase() === user.email?.toLowerCase());
   const ownRequests = requests.filter((item) => item.ownerEmail?.toLowerCase() === user.email?.toLowerCase());
   const teamRequests = ownEmployee
@@ -100,11 +119,11 @@ export function Requests() {
       setMessageTone('error');
       return;
     }
-    const requestedChanges = form.type === 'Actualización de datos'
-      ? cleanRequestedChanges(dataChanges)
+    const requestedChanges = form.type === 'Corrección de ficha laboral'
+      ? cleanRequestedChanges(correction)
       : {};
-    if (form.type === 'Actualización de datos' && !Object.keys(requestedChanges).length) {
-      setMessage('Indica al menos un dato nuevo para actualizar.');
+    if (form.type === 'Corrección de ficha laboral' && (!requestedChanges.field || !requestedChanges.proposedValue || !form.detail.trim())) {
+      setMessage('Indica el dato a corregir, el valor correcto y el motivo de la solicitud.');
       setMessageTone('error');
       return;
     }
@@ -132,7 +151,7 @@ export function Requests() {
       });
       const whatsappResult = await notifyRequestByWhatsApp(withSupervisor(request));
       setForm({ ...emptyForm, employeeId: isAdmin ? '' : selectedEmployee.id });
-      setDataChanges(emptyDataChanges);
+      setCorrection(emptyCorrection);
       setMessage(whatsappResult.message);
       setMessageTone(whatsappResult.ok ? 'success' : 'warning');
     } catch (error) {
@@ -350,40 +369,29 @@ export function Requests() {
                 <small>{selectedRequestType.guidance} Atención sugerida: {selectedRequestType.targetDays} días.</small>
               </span>
             </div>
-            {form.type === 'Actualización de datos' && (
+            {form.type === 'Corrección de ficha laboral' && (
               <div className="field-wide data-update-fields">
                 <div className="data-update-heading">
                   <span><Icon name="edit" size={17} /></span>
                   <div>
-                    <strong>Datos que quieres modificar</strong>
-                    <small>Completa solamente los campos que deben cambiar. El administrador verá el valor actual y el propuesto.</small>
+                    <strong>Corrección de un antecedente protegido</strong>
+                    <small>Los datos personales se editan desde “Mi ficha laboral”. Usa esta solicitud para información controlada por Administración.</small>
                   </div>
                 </div>
                 <label className="field">
-                  <span>Nuevo teléfono</span>
-                  <input
-                    value={dataChanges.phone}
-                    placeholder={selectedEmployee?.phone || '+56 9…'}
-                    maxLength="40"
-                    onChange={(event) => setDataChanges((current) => ({ ...current, phone: event.target.value }))}
-                  />
+                  <span>Dato que debe revisarse</span>
+                  <select value={correction.field} onChange={(event) => setCorrection((current) => ({ ...current, field: event.target.value }))}>
+                    <option value="">Seleccionar antecedente</option>
+                    {correctionFields.map((field) => <option key={field} value={field}>{field}</option>)}
+                  </select>
                 </label>
                 <label className="field">
-                  <span>Nuevo contacto de emergencia</span>
+                  <span>Valor que debería figurar</span>
                   <input
-                    value={dataChanges.emergencyContact}
-                    placeholder={selectedEmployee?.emergencyContact || 'Nombre y relación'}
-                    maxLength="100"
-                    onChange={(event) => setDataChanges((current) => ({ ...current, emergencyContact: event.target.value }))}
-                  />
-                </label>
-                <label className="field">
-                  <span>Nuevo teléfono de emergencia</span>
-                  <input
-                    value={dataChanges.emergencyPhone}
-                    placeholder={selectedEmployee?.emergencyPhone || '+56 9…'}
-                    maxLength="40"
-                    onChange={(event) => setDataChanges((current) => ({ ...current, emergencyPhone: event.target.value }))}
+                    value={correction.proposedValue}
+                    placeholder="Escribe el valor correcto"
+                    maxLength="160"
+                    onChange={(event) => setCorrection((current) => ({ ...current, proposedValue: event.target.value }))}
                   />
                 </label>
               </div>
@@ -435,6 +443,7 @@ export function Requests() {
                       employee={employees.find((employee) => employee.id === item.employeeId)}
                     />
                   )}
+                  {item.type === 'Corrección de ficha laboral' && <RecordCorrectionPreview changes={item.requestedChanges} />}
                   <RequestApprovalPath request={item} />
                   <div className="request-history">
                     <span>Creada {formatTimestamp(item.createdAt)}</span>
@@ -495,6 +504,7 @@ export function Requests() {
                   employee={employees.find((employee) => employee.id === resolution.request.employeeId)}
                 />
               )}
+              {resolution.request.type === 'Corrección de ficha laboral' && <RecordCorrectionPreview changes={resolution.request.requestedChanges} />}
             </div>
             <div className="form-grid">
               <label className="field field-wide">
@@ -577,6 +587,17 @@ function DataUpdatePreview({ changes = {}, employee }) {
           <span className="proposed"><small>Propuesto</small>{changes[field.key]}</span>
         </div>
       ))}
+    </div>
+  );
+}
+
+function RecordCorrectionPreview({ changes = {} }) {
+  if (!changes.field && !changes.proposedValue) return null;
+  return (
+    <div className="record-correction-preview">
+      <span><small>Antecedente</small><strong>{changes.field || 'Sin especificar'}</strong></span>
+      <Icon name="arrow" size={13} />
+      <span><small>Valor solicitado</small><strong>{changes.proposedValue || 'Sin especificar'}</strong></span>
     </div>
   );
 }

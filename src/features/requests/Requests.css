@@ -269,7 +269,7 @@
   border: 1px solid #cfe1e6;
   border-radius: 15px;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   background: #f3f8fa;
 }
@@ -356,6 +356,44 @@
 
 .data-change-preview svg {
   color: #9eb0b6;
+}
+
+.record-correction-preview {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid #d3e5e9;
+  border-radius: 12px;
+  display: grid;
+  grid-template-columns: minmax(0, .8fr) auto minmax(0, 1.2fr);
+  align-items: center;
+  gap: 9px;
+  background: #f4fafb;
+}
+
+.record-correction-preview span,
+.record-correction-preview small,
+.record-correction-preview strong {
+  min-width: 0;
+  display: block;
+}
+
+.record-correction-preview small {
+  margin-bottom: 3px;
+  color: #8a9ba1;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  font-size: .53rem;
+  font-weight: 800;
+}
+
+.record-correction-preview strong {
+  overflow-wrap: anywhere;
+  color: #31545e;
+  font-size: .65rem;
+}
+
+.record-correction-preview svg {
+  color: #8fa8ae;
 }
 
 .request-card.supervisor-review {
@@ -508,6 +546,14 @@
   }
 
   .data-change-preview svg {
+    display: none;
+  }
+
+  .record-correction-preview {
+    grid-template-columns: 1fr;
+  }
+
+  .record-correction-preview > svg {
     display: none;
   }
 

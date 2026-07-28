@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Icon } from '../../components/AppLayout';
 import { updateEmployeeProfile } from '../../services/attendanceApi';
@@ -145,10 +146,23 @@ export function Profile() {
       <header className="page-header">
         <div>
           <p className="eyebrow">Cuenta</p>
-          <h1>Mi perfil</h1>
-          <p className="page-subtitle">Mantén actualizada la forma en que te ve el equipo.</p>
+          <h1>Perfil de cuenta</h1>
+          <p className="page-subtitle">Configura tu foto, nombre visible y presentación dentro del portal.</p>
         </div>
       </header>
+
+      {profile?.role !== 'admin' && (
+        <section className="workflow-notice ready">
+          <span className="workflow-notice-icon"><Icon name="briefcase" /></span>
+          <div className="workflow-notice-copy">
+            <strong>¿Buscas tus datos personales o contractuales?</strong>
+            <p>Teléfono, dirección, contacto de emergencia, contrato, jornada y supervisor están organizados en tu ficha laboral.</p>
+          </div>
+          <div className="workflow-notice-actions">
+            <Link className="secondary-button" to="/mi-ficha">Abrir mi ficha</Link>
+          </div>
+        </section>
+      )}
 
       <form className="panel profile-card" onSubmit={handleSave}>
         <div className="profile-identity">

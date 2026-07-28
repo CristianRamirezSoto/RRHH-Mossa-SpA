@@ -17,6 +17,9 @@ const tableMap = {
     supervisorId: 'supervisor_id',
     supervisor: 'supervisor',
     supervisorWhatsapp: 'supervisor_whatsapp',
+    personalEmail: 'personal_email',
+    address: 'address',
+    commune: 'commune',
     emergencyContact: 'emergency_contact',
     emergencyPhone: 'emergency_phone',
     startDate: 'start_date',
@@ -111,6 +114,14 @@ const tableMap = {
     ownerEmail: 'owner_email',
     createdAt: 'created_at',
   },
+  employeeChangeLog: {
+    employeeId: 'employee_id',
+    actorUid: 'actor_uid',
+    changedFields: 'changed_fields',
+    beforeValues: 'before_values',
+    afterValues: 'after_values',
+    createdAt: 'created_at',
+  },
   profiles: {
     displayName: 'display_name',
     avatarStoragePath: 'avatar_storage_path',
@@ -129,6 +140,7 @@ const tableNames = {
   biometricProfiles: 'biometric_profiles',
   hrRequests: 'hr_requests',
   employeeDirectory: 'employee_directory',
+  employeeChangeLog: 'employee_change_log',
 };
 
 function dbTable(table) {
@@ -253,4 +265,18 @@ export async function reviewTeamRequest(requestId, { decision, comment = '' }) {
   });
   if (error) throw error;
   return fromDb('hrRequests', data);
+}
+
+export async function updateOwnEmployeeContact(payload) {
+  ensureSupabase();
+  const { data, error } = await supabase.rpc('update_own_employee_contact', {
+    p_phone: String(payload.phone || '').slice(0, 40),
+    p_personal_email: String(payload.personalEmail || '').slice(0, 160),
+    p_address: String(payload.address || '').slice(0, 240),
+    p_commune: String(payload.commune || '').slice(0, 100),
+    p_emergency_contact: String(payload.emergencyContact || '').slice(0, 100),
+    p_emergency_phone: String(payload.emergencyPhone || '').slice(0, 40),
+  });
+  if (error) throw error;
+  return fromDb('employees', data);
 }

@@ -11,6 +11,9 @@ alter table public.employees add column if not exists is_supervisor boolean not 
 alter table public.employees add column if not exists supervisor_id uuid references public.employees(id) on delete set null;
 alter table public.employees add column if not exists supervisor text default '';
 alter table public.employees add column if not exists supervisor_whatsapp text default '';
+alter table public.employees add column if not exists personal_email text default '';
+alter table public.employees add column if not exists address text default '';
+alter table public.employees add column if not exists commune text default '';
 alter table public.employees add column if not exists emergency_contact text default '';
 alter table public.employees add column if not exists emergency_phone text default '';
 
@@ -40,6 +43,9 @@ where table_schema = 'public'
     'supervisor_id',
     'supervisor',
     'supervisor_whatsapp',
+    'personal_email',
+    'address',
+    'commune',
     'emergency_contact',
     'emergency_phone'
   )

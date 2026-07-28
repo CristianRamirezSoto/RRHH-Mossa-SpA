@@ -9,6 +9,7 @@ const emptyForm = {
   name: '',
   email: '',
   phone: '',
+  personalEmail: '',
   rut: '',
   position: '',
   area: '',
@@ -26,6 +27,8 @@ const emptyForm = {
   baseSalary: 0,
   emergencyContact: '',
   emergencyPhone: '',
+  address: '',
+  commune: '',
   biometricConsent: false,
   status: 'Activo',
 };
@@ -51,6 +54,9 @@ const optionalEmployeeColumns = {
   supervisor_id: 'supervisorId',
   supervisor: 'supervisor',
   supervisor_whatsapp: 'supervisorWhatsapp',
+  personal_email: 'personalEmail',
+  address: 'address',
+  commune: 'commune',
   emergency_contact: 'emergencyContact',
   emergency_phone: 'emergencyPhone',
 };
@@ -84,6 +90,7 @@ export function Employees() {
   const { profile } = useAuth();
   const navigate = useNavigate();
   const [employees, setEmployees] = useState([]);
+  const [changeLog, setChangeLog] = useState([]);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('Todos');
   const [editing, setEditing] = useState(null);
@@ -93,6 +100,7 @@ export function Employees() {
   const [message, setMessage] = useState('');
 
   useEffect(() => subscribeRows('employees', setEmployees, { orderBy: 'name', ascending: true }), []);
+  useEffect(() => subscribeRows('employeeChangeLog', setChangeLog, { orderBy: 'createdAt', ascending: false }), []);
 
   const summary = useMemo(() => {
     const active = employees.filter((item) => item.status === 'Activo').length;
@@ -225,18 +233,21 @@ export function Employees() {
     () => buildSupervisorOptions(employees, form.area, editing === 'new' ? '' : editing),
     [employees, form.area, editing]
   );
+  const editingHistory = editing && editing !== 'new'
+    ? changeLog.filter((entry) => entry.employeeId === editing).slice(0, 6)
+    : [];
 
   return (
     <div className="page">
       <header className="page-header">
         <div>
           <p className="eyebrow">Personas</p>
-          <h1>Colaboradores</h1>
-          <p className="page-subtitle">Ficha laboral, jornada, contrato, sueldo base y datos operativos del equipo.</p>
+          <h1>Fichas laborales</h1>
+          <p className="page-subtitle">Administra los datos contractuales, organizacionales y operativos del equipo.</p>
         </div>
         {canEdit && (
           <button className="primary-button" type="button" onClick={openCreate}>
-            <Icon name="plus" /> Nuevo colaborador
+            <Icon name="plus" /> Nueva ficha laboral
           </button>
         )}
       </header>
@@ -246,6 +257,14 @@ export function Employees() {
         <SummaryCard icon="clock" label="Pendientes" value={summary.pending} tone="warning" />
         <SummaryCard icon="fingerprint" label="Con biometria" value={`${summary.enrolled}/${employees.length}`} />
         <SummaryCard icon="briefcase" label="Areas" value={summary.areas} />
+      </section>
+
+      <section className="workflow-notice">
+        <span className="workflow-notice-icon"><Icon name="shield" size={19} /></span>
+        <div className="workflow-notice-copy">
+          <strong>Gestión dividida por responsabilidad</strong>
+          <p>El trabajador mantiene teléfono, correo personal, dirección y emergencia desde “Mi ficha laboral”. Administración controla contrato, sueldo, cargo, jornada, estado y supervisor.</p>
+        </div>
       </section>
 
       <section className="toolbar">
@@ -352,8 +371,8 @@ export function Employees() {
           <form className="modal employee-modal" onSubmit={handleSubmit}>
             <div className="modal-header">
               <div>
-                <p className="eyebrow">Ficha laboral</p>
-                <h2>{editing === 'new' ? 'Nuevo colaborador' : 'Editar colaborador'}</h2>
+                <p className="eyebrow">Gestión administrativa</p>
+                <h2>{editing === 'new' ? 'Nueva ficha laboral' : 'Editar ficha laboral'}</h2>
               </div>
               <button className="icon-button" type="button" onClick={() => setEditing(null)}><Icon name="close" /></button>
             </div>
@@ -361,9 +380,24 @@ export function Employees() {
             <FormSection title="Identificacion">
               <Field label="Nombre completo" name="name" value={form.name} setForm={updateForm} required />
               <Field label="Correo corporativo" name="email" value={form.email} setForm={updateForm} type="email" required />
-              <Field label="Telefono" name="phone" value={form.phone} setForm={updateForm} />
               <Field label="RUT" name="rut" value={form.rut} setForm={updateForm} />
               <SelectField label="Estado" name="status" value={form.status} setForm={updateForm} options={statusOptions} />
+            </FormSection>
+
+            <FormSection title="Contacto personal">
+              <Field label="Teléfono personal" name="phone" value={form.phone} setForm={updateForm} />
+              <Field label="Correo personal" name="personalEmail" value={form.personalEmail} setForm={updateForm} type="email" />
+              <Field label="Dirección" name="address" value={form.address} setForm={updateForm} />
+              <Field label="Comuna" name="commune" value={form.commune} setForm={updateForm} />
+              <Field label="Contacto de emergencia" name="emergencyContact" value={form.emergencyContact} setForm={updateForm} />
+              <Field label="Teléfono de emergencia" name="emergencyPhone" value={form.emergencyPhone} setForm={updateForm} />
+              <div className="role-logic-card field-wide">
+                <Icon name="user" size={17} />
+                <span>
+                  <strong>Datos de autoservicio</strong>
+                  <small>El trabajador también puede mantener estos campos desde su ficha. Todas las modificaciones quedan registradas.</small>
+                </span>
+              </div>
             </FormSection>
 
             <FormSection title="Datos laborales">
@@ -403,12 +437,10 @@ export function Employees() {
               <Field label="Fecha de contrato" name="contractDate" value={form.contractDate} setForm={updateForm} type="date" />
             </FormSection>
 
-            <FormSection title="Jornada y emergencia">
+            <FormSection title="Jornada y cumplimiento">
               <Field label="Entrada" name="scheduleStart" value={form.scheduleStart} setForm={updateForm} type="time" />
               <Field label="Salida" name="scheduleEnd" value={form.scheduleEnd} setForm={updateForm} type="time" />
               <Field label="Horas semanales" name="weeklyHours" value={form.weeklyHours} setForm={updateForm} type="number" />
-              <Field label="Contacto emergencia" name="emergencyContact" value={form.emergencyContact} setForm={updateForm} />
-              <Field label="Telefono emergencia" name="emergencyPhone" value={form.emergencyPhone} setForm={updateForm} />
               <label className="consent-field field-wide">
                 <input
                   type="checkbox"
@@ -421,6 +453,23 @@ export function Employees() {
                 </span>
               </label>
             </FormSection>
+
+            {editing !== 'new' && (
+              <FormSection title="Historial de la ficha">
+                <div className="field-wide employee-change-history">
+                  {editingHistory.map((entry) => (
+                    <div key={entry.id}>
+                      <span><Icon name={entry.source === 'self_service' ? 'user' : 'shield'} size={14} /></span>
+                      <p>
+                        <strong>{entry.source === 'self_service' ? 'Actualización del trabajador' : 'Cambio administrativo'}</strong>
+                        <small>{describeChangedFields(entry.changedFields)} · {formatTimestamp(entry.createdAt)}</small>
+                      </p>
+                    </div>
+                  ))}
+                  {!editingHistory.length && <p className="employee-change-empty">Sin modificaciones registradas desde que se habilitó la trazabilidad.</p>}
+                </div>
+              </FormSection>
+            )}
 
             {message && <p className="form-message error">{message}</p>}
             <div className="modal-actions">
@@ -438,7 +487,7 @@ async function saveEmployeeWithSchemaFallback(payload, employeeId) {
   const missingColumns = [];
   let currentPayload = { ...payload };
 
-  for (let attempt = 0; attempt < 10; attempt += 1) {
+  for (let attempt = 0; attempt < 16; attempt += 1) {
     try {
       if (employeeId === 'new') {
         await insertRow('employees', currentPayload);
@@ -599,4 +648,48 @@ function slug(value = '') {
 
 function formatMoney(value) {
   return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(Number(value || 0));
+}
+
+const employeeFieldLabels = {
+  name: 'Nombre legal',
+  email: 'Correo corporativo',
+  phone: 'Teléfono',
+  personalEmail: 'Correo personal',
+  rut: 'RUT',
+  position: 'Cargo',
+  area: 'Área',
+  isSupervisor: 'Rol de supervisor',
+  supervisorId: 'Supervisor',
+  supervisor: 'Supervisor',
+  workLocation: 'Lugar de trabajo',
+  contractType: 'Contrato',
+  startDate: 'Fecha de ingreso',
+  contractDate: 'Fecha de contrato',
+  scheduleStart: 'Entrada',
+  scheduleEnd: 'Salida',
+  weeklyHours: 'Horas semanales',
+  baseSalary: 'Sueldo base',
+  address: 'Dirección',
+  commune: 'Comuna',
+  emergencyContact: 'Contacto de emergencia',
+  emergencyPhone: 'Teléfono de emergencia',
+  biometricConsent: 'Consentimiento biométrico',
+  status: 'Estado',
+};
+
+function describeChangedFields(fields = []) {
+  const labels = fields.map((field) => employeeFieldLabels[field] || field);
+  if (!labels.length) return 'Ficha actualizada';
+  return labels.length > 3 ? `${labels.slice(0, 3).join(', ')} y ${labels.length - 3} más` : labels.join(', ');
+}
+
+function formatTimestamp(value) {
+  if (!value) return '';
+  return new Intl.DateTimeFormat('es-CL', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value));
 }

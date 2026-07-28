@@ -30,6 +30,10 @@ const WorkerPayments = lazyNamed(
   () => import('./features/employee-portal/WorkerPayments'),
   'WorkerPayments',
 );
+const EmploymentRecord = lazyNamed(
+  () => import('./features/employee-portal/EmploymentRecord'),
+  'EmploymentRecord',
+);
 const AccountManagement = lazyNamed(
   () => import('./features/account-management/AccountManagement'),
   'AccountManagement',
@@ -68,6 +72,7 @@ export default function App() {
 
               <Route path="/inicio" element={<EmployeeRoute><WorkerHome /></EmployeeRoute>} />
               <Route path="/personas" element={<EmployeeRoute><EmployeeDirectory /></EmployeeRoute>} />
+              <Route path="/mi-ficha" element={<EmployeeRoute><EmploymentRecord /></EmployeeRoute>} />
               <Route path="/mis-pagos" element={<EmployeeRoute><WorkerPayments /></EmployeeRoute>} />
               <Route path="/expediente" element={<DigitalFile />} />
 

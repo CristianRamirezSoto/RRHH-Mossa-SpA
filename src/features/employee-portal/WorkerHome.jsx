@@ -57,14 +57,17 @@ export function WorkerHome() {
   const unreadNotifications = notifications.filter((item) => !item.read);
   const latestPayment = payroll.find((item) => ['Pendiente pago', 'Pagado'].includes(item.status));
   const firstName = (employee?.name || profile?.displayName || user.email).split(/[\s@]/)[0];
+  const personalContactReady = Boolean(employee?.phone && employee?.emergencyContact && employee?.emergencyPhone);
   const selfServiceSteps = useMemo(() => [
     {
       id: 'employee',
-      title: 'Ficha laboral vinculada',
-      detail: employee ? `${employee.position || 'Cargo por completar'} · ${employee.area || 'Área por completar'}` : 'Tu cuenta aún no está asociada a una ficha.',
-      ready: Boolean(employee),
-      to: '/ayuda',
-      action: 'Cómo resolverlo',
+      title: 'Ficha laboral y contactos',
+      detail: employee
+        ? personalContactReady ? 'Tu ficha está vinculada y tus contactos esenciales están completos.' : 'Tu ficha está vinculada, pero faltan datos personales esenciales.'
+        : 'Tu cuenta aún no está asociada a una ficha.',
+      ready: Boolean(employee && personalContactReady),
+      to: '/mi-ficha',
+      action: 'Revisar ficha',
     },
     {
       id: 'profile',
@@ -94,7 +97,7 @@ export function WorkerHome() {
       to: '/notificaciones',
       action: 'Ver novedades',
     },
-  ], [documentStatus.missing.length, employee, profile?.displayName, unreadNotifications.length]);
+  ], [documentStatus.missing.length, employee, personalContactReady, profile?.displayName, unreadNotifications.length]);
   const selfServiceProgress = Math.round(
     (selfServiceSteps.filter((step) => step.ready).length / selfServiceSteps.length) * 100,
   );
@@ -258,9 +261,9 @@ export function WorkerHome() {
         </div>
         <div className="quick-actions-grid">
           <QuickAction to="/expediente" icon="folder" title="Mis documentos" text="Contratos, certificados y antecedentes laborales." />
+          <QuickAction to="/mi-ficha" icon="briefcase" title="Mi ficha laboral" text="Revisa tu contrato y actualiza tus datos personales." />
           <QuickAction to="/solicitudes" icon="calendar" title="Pedir vacaciones o permiso" text="Crea una solicitud y revisa su estado." />
           <QuickAction to="/mis-pagos" icon="wallet" title="Mis liquidaciones" text="Consulta periodos liberados y comprobantes." />
-          <QuickAction to="/personas" icon="users" title="Directorio del equipo" text="Encuentra personas por área, cargo o sede." />
         </div>
       </section>
 
