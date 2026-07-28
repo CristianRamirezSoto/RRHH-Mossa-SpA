@@ -8,6 +8,7 @@ alter table public.employees add column if not exists work_location text default
 alter table public.employees add column if not exists schedule_end text default '18:00';
 alter table public.employees add column if not exists weekly_hours numeric not null default 44;
 alter table public.employees add column if not exists is_supervisor boolean not null default false;
+alter table public.employees add column if not exists supervisor_id uuid references public.employees(id) on delete set null;
 alter table public.employees add column if not exists supervisor text default '';
 alter table public.employees add column if not exists supervisor_whatsapp text default '';
 alter table public.employees add column if not exists emergency_contact text default '';
@@ -36,6 +37,7 @@ where table_schema = 'public'
     'schedule_end',
     'weekly_hours',
     'is_supervisor',
+    'supervisor_id',
     'supervisor',
     'supervisor_whatsapp',
     'emergency_contact',

@@ -46,11 +46,11 @@ export function Notifications() {
 
   useEffect(() => {
     return subscribeRows('hrRequests', setRequests, {
-      filters: isAdmin ? [] : [['ownerEmail', user.email.toLowerCase()]],
+      filters: [],
       orderBy: 'createdAt',
       ascending: false,
     });
-  }, [isAdmin, user.email]);
+  }, []);
 
   useEffect(() => {
     return subscribeRows('payroll', setPayroll, {
@@ -63,7 +63,7 @@ export function Notifications() {
   const items = useMemo(() => {
     const generated = [
       ...documentAlerts(employees, documents, isAdmin),
-      ...requestAlerts(requests, isAdmin),
+      ...requestAlerts(requests, isAdmin, user.email),
       ...payrollAlerts(payroll, isAdmin),
       ...biometricAlerts(employees, isAdmin),
     ];
@@ -79,7 +79,7 @@ export function Notifications() {
       if (severity) return severity;
       return timestampValue(b.createdAt) - timestampValue(a.createdAt);
     });
-  }, [employees, documents, isAdmin, payroll, requests, storedNotifications]);
+  }, [employees, documents, isAdmin, payroll, requests, storedNotifications, user.email]);
 
   const visibleItems = useMemo(() => items.filter((item) => {
     if (filter === 'Leidas') return item.read;
@@ -230,20 +230,31 @@ function documentAlerts(employees, documents, isAdmin) {
   return rows;
 }
 
-function requestAlerts(requests, isAdmin) {
-  return requests.filter((item) => item.status === 'Pendiente').map((item) => ({
-    id: `request-${item.id}`,
-    source: 'Solicitudes',
-    severity: isOlderThan(item.createdAt, 2) ? 'danger' : 'warning',
-    title: `${item.type} pendiente`,
-    message: requestAlertMessage(item),
-    nextStep: isAdmin ? 'Aprobar, rechazar o notificar al supervisor por WhatsApp.' : 'Queda pendiente de revision por RRHH.',
-    actionLabel: 'Abrir solicitudes',
-    link: '/solicitudes',
-    createdAt: item.createdAt,
-    requiresAction: isAdmin,
-    generated: true,
-  }));
+function requestAlerts(requests, isAdmin, currentEmail) {
+  return requests.filter((item) => item.status === 'Pendiente').map((item) => {
+    const own = item.ownerEmail?.toLowerCase() === currentEmail?.toLowerCase();
+    const supervisorAction = !isAdmin && !own && item.supervisorStatus === 'Pendiente';
+    const waitingSupervisor = item.supervisorStatus === 'Pendiente';
+    return {
+      id: `request-${item.id}`,
+      source: 'Solicitudes',
+      severity: isOlderThan(item.createdAt, 2) ? 'danger' : 'warning',
+      title: supervisorAction ? `${item.employeeName} espera tu revisión` : `${item.type} pendiente`,
+      message: requestAlertMessage(item),
+      nextStep: supervisorAction
+        ? 'Revisa como supervisor y envía tu decisión a administración.'
+        : isAdmin && waitingSupervisor
+          ? `Pendiente del visto bueno de ${item.supervisorName || 'su supervisor'}.`
+          : isAdmin
+            ? 'Resolver administrativamente y adjuntar el respaldo.'
+            : 'Revisa la etapa actual desde Solicitudes.',
+      actionLabel: supervisorAction ? 'Revisar equipo' : 'Abrir solicitudes',
+      link: '/solicitudes',
+      createdAt: item.createdAt,
+      requiresAction: isAdmin ? !waitingSupervisor : supervisorAction,
+      generated: true,
+    };
+  });
 }
 
 function payrollAlerts(payroll, isAdmin) {

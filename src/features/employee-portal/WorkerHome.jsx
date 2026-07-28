@@ -28,7 +28,7 @@ export function WorkerHome() {
   }), [email]);
 
   useEffect(() => subscribeRows('hrRequests', setRequests, {
-    filters: [['ownerEmail', email]],
+    filters: [],
     orderBy: 'createdAt',
     ascending: false,
   }), [email]);
@@ -48,7 +48,12 @@ export function WorkerHome() {
   const documentStatus = useMemo(() => requiredDocumentStatus(documents), [documents]);
   const documentProgress = documentStatus.completion;
 
-  const pendingRequests = requests.filter((item) => item.status === 'Pendiente');
+  const ownRequests = requests.filter((item) => item.ownerEmail?.toLowerCase() === email);
+  const teamRequests = employee
+    ? requests.filter((item) => item.supervisorId === employee.id && item.ownerEmail?.toLowerCase() !== email)
+    : [];
+  const pendingRequests = ownRequests.filter((item) => item.status === 'Pendiente');
+  const pendingTeamRequests = teamRequests.filter((item) => item.status === 'Pendiente' && item.supervisorStatus === 'Pendiente');
   const unreadNotifications = notifications.filter((item) => !item.read);
   const latestPayment = payroll.find((item) => ['Pendiente pago', 'Pagado'].includes(item.status));
   const firstName = (employee?.name || profile?.displayName || user.email).split(/[\s@]/)[0];
@@ -103,7 +108,7 @@ export function WorkerHome() {
       date: item.uploadedAt,
       tone: 'green',
     })),
-    ...requests.slice(0, 2).map((item) => ({
+    ...ownRequests.slice(0, 2).map((item) => ({
       id: `request-${item.id}`,
       icon: 'calendar',
       title: `${item.type} · ${item.status}`,
@@ -119,7 +124,7 @@ export function WorkerHome() {
       date: item.createdAt,
       tone: 'blue',
     })),
-  ].sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0)).slice(0, 5), [documents, requests, notifications]);
+  ].sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0)).slice(0, 5), [documents, ownRequests, notifications]);
 
   return (
     <div className="page employee-portal-page">
@@ -194,6 +199,20 @@ export function WorkerHome() {
           tone="purple"
         />
       </section>
+
+      {employee?.isSupervisor && (
+        <section className={`worker-supervisor-inbox${pendingTeamRequests.length ? ' has-pending' : ''}`}>
+          <span><Icon name="users" size={22} /></span>
+          <div>
+            <p className="eyebrow">Mi equipo</p>
+            <h2>{pendingTeamRequests.length
+              ? `${pendingTeamRequests.length} solicitud${pendingTeamRequests.length === 1 ? '' : 'es'} espera${pendingTeamRequests.length === 1 ? '' : 'n'} tu revisión`
+              : 'No tienes solicitudes pendientes de revisión'}</h2>
+            <p>Tu propia solicitud seguirá a {employee.supervisor || 'administración'}; las de tu equipo aparecen en una bandeja separada.</p>
+          </div>
+          <Link to="/solicitudes">Abrir equipo a cargo <Icon name="arrow" size={15} /></Link>
+        </section>
+      )}
 
       <section className="worker-self-service-grid" aria-label="Ruta de autoservicio">
         <article className="portal-panel worker-roadmap">

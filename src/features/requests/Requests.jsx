@@ -4,6 +4,7 @@ import { Icon } from '../../components/AppLayout';
 import {
   insertRow,
   resolveEmployeeDataUpdate,
+  reviewTeamRequest,
   subscribeRows,
   updateRow,
 } from '../../services/supabaseData';
@@ -36,6 +37,7 @@ export function Requests() {
   const [employees, setEmployees] = useState([]);
   const [requests, setRequests] = useState([]);
   const [filter, setFilter] = useState('Pendiente');
+  const [viewMode, setViewMode] = useState('mine');
   const [form, setForm] = useState(emptyForm);
   const [dataChanges, setDataChanges] = useState(emptyDataChanges);
   const [message, setMessage] = useState('');
@@ -63,20 +65,26 @@ export function Requests() {
 
   useEffect(() => {
     return subscribeRows('hrRequests', setRequests, {
-      filters: isAdmin ? [] : [['ownerEmail', user.email.toLowerCase()]],
+      filters: [],
       orderBy: 'createdAt',
       ascending: false,
     });
-  }, [isAdmin, user.email]);
+  }, []);
 
+  const ownEmployee = employees.find((item) => item.email?.toLowerCase() === user.email?.toLowerCase());
+  const ownRequests = requests.filter((item) => item.ownerEmail?.toLowerCase() === user.email?.toLowerCase());
+  const teamRequests = ownEmployee
+    ? requests.filter((item) => item.supervisorId === ownEmployee.id && item.ownerEmail?.toLowerCase() !== user.email?.toLowerCase())
+    : [];
+  const scopedRequests = isAdmin ? requests : viewMode === 'team' ? teamRequests : ownRequests;
   const visible = useMemo(() => {
-    const filtered = requests.filter((item) => filter === 'Todas' || item.status === filter);
+    const filtered = scopedRequests.filter((item) => filter === 'Todas' || item.status === filter);
     return [...filtered].sort((left, right) => {
       const leftDate = new Date(left.createdAt || 0).getTime();
       const rightDate = new Date(right.createdAt || 0).getTime();
-      return isAdmin && filter === 'Pendiente' ? leftDate - rightDate : rightDate - leftDate;
+      return (isAdmin || viewMode === 'team') && filter === 'Pendiente' ? leftDate - rightDate : rightDate - leftDate;
     });
-  }, [filter, isAdmin, requests]);
+  }, [filter, isAdmin, scopedRequests, viewMode]);
   const selectedEmployee = employees.find((item) => item.id === form.employeeId);
   const selectedRequestType = requestTypes.find((item) => item.value === form.type) || requestTypes[0];
 
@@ -114,6 +122,9 @@ export function Requests() {
         toDate: selectedRequestType.requiresDates ? form.toDate : today,
         detail: form.detail.trim(),
         requestedChanges,
+        supervisorId: selectedEmployee.supervisorId || null,
+        supervisorName: selectedEmployee.supervisor || '',
+        supervisorStatus: selectedEmployee.supervisorId ? 'Pendiente' : 'No aplica',
         status: 'Pendiente',
         createdBy: user.id,
         createdAt: new Date().toISOString(),
@@ -132,8 +143,8 @@ export function Requests() {
     }
   }
 
-  function openResolution(request, status) {
-    setResolution({ request, status });
+  function openResolution(request, status, stage = 'final') {
+    setResolution({ request, status, stage });
     setResolutionComment('');
     setResolutionFile(null);
   }
@@ -142,7 +153,7 @@ export function Requests() {
     event.preventDefault();
     if (!resolution) return;
     const isDataUpdate = resolution.request.type === 'Actualización de datos';
-    if (resolution.status === 'Aprobada' && !resolutionFile && !isDataUpdate) {
+    if (resolution.stage !== 'supervisor' && resolution.status === 'Aprobada' && !resolutionFile && !isDataUpdate) {
       setMessage('Para aprobar debes adjuntar el documento de respaldo.');
       setMessageTone('error');
       return;
@@ -153,6 +164,20 @@ export function Requests() {
     setMessageTone('');
     let storagePath = '';
     try {
+      if (resolution.stage === 'supervisor') {
+        await reviewTeamRequest(resolution.request.id, {
+          decision: resolution.status,
+          comment: resolutionComment,
+        });
+        setResolution(null);
+        setResolutionComment('');
+        setMessage(resolution.status === 'Aprobada'
+          ? 'Solicitud visada y enviada a administración para resolución final.'
+          : 'Solicitud rechazada y cerrada para el colaborador.');
+        setMessageTone('success');
+        return;
+      }
+
       if (isDataUpdate) {
         await resolveEmployeeDataUpdate(resolution.request.id, {
           status: resolution.status,
@@ -234,30 +259,48 @@ export function Requests() {
       <header className="page-header">
         <div>
           <p className="eyebrow">{isAdmin ? 'Gestión del equipo' : 'Autoservicio'}</p>
-          <h1>{isAdmin ? 'Solicitudes del equipo' : 'Mis solicitudes'}</h1>
+          <h1>{isAdmin ? 'Solicitudes del equipo' : 'Solicitudes'}</h1>
           <p className="page-subtitle">{isAdmin
-            ? 'Revisa, aprueba y mantén trazabilidad de cada solicitud.'
-            : 'Solicita vacaciones, permisos o licencias y sigue su avance.'}</p>
+            ? 'Resuelve después del visto bueno del supervisor y mantén trazabilidad completa.'
+            : 'Envía tus solicitudes y, si tienes equipo a cargo, revisa las que esperan tu visto bueno.'}</p>
         </div>
       </header>
 
+      {!isAdmin && ownEmployee?.isSupervisor && (
+        <section className="request-scope-switch" aria-label="Vista de solicitudes">
+          <button type="button" className={viewMode === 'mine' ? 'active' : ''} onClick={() => setViewMode('mine')}>
+            <Icon name="user" size={17} />
+            <span><strong>Mis solicitudes</strong><small>{ownRequests.length} registradas</small></span>
+          </button>
+          <button type="button" className={viewMode === 'team' ? 'active' : ''} onClick={() => setViewMode('team')}>
+            <Icon name="users" size={17} />
+            <span><strong>Equipo a cargo</strong><small>{teamRequests.filter((item) => item.supervisorStatus === 'Pendiente').length} por revisar</small></span>
+          </button>
+        </section>
+      )}
+
       {!isAdmin && (
         <section className="request-process-strip" aria-label="Etapas de una solicitud">
-          <div><span>1</span><strong>Registra</strong><small>Elige el tipo correcto</small></div>
+          <div><span>1</span><strong>Envía</strong><small>Completa la información</small></div>
           <Icon name="arrow" size={16} />
-          <div><span>2</span><strong>Sigue</strong><small>Revisa el estado aquí</small></div>
+          <div><span>2</span><strong>{ownEmployee?.supervisorId ? 'Supervisor' : 'Ruta directa'}</strong><small>{ownEmployee?.supervisor || 'Pasa a administración'}</small></div>
           <Icon name="arrow" size={16} />
-          <div><span>3</span><strong>Descarga</strong><small>Recibe el respaldo final</small></div>
+          <div><span>3</span><strong>Administración</strong><small>Resolución final</small></div>
+          <Icon name="arrow" size={16} />
+          <div><span>4</span><strong>Resultado</strong><small>Estado y respaldo</small></div>
         </section>
       )}
 
       <section className="hr-workflow-grid">
         <form className="panel request-form-panel" onSubmit={submitRequest}>
-          <div className="panel-heading">
+          <div className="request-compose-header">
+            <span><Icon name="edit" size={21} /></span>
             <div>
-              <h2>Nueva solicitud</h2>
-              <p>{isAdmin ? 'Registra solicitudes del equipo.' : 'Envia tu solicitud a RRHH.'}</p>
+              <p className="eyebrow">Nuevo ingreso</p>
+              <h2>Enviar una solicitud</h2>
+              <p>{isAdmin ? 'Registra una solicitud en nombre de un colaborador.' : 'La solicitud seguirá automáticamente la jefatura configurada en tu ficha.'}</p>
             </div>
+            <small>Formulario guiado</small>
           </div>
           <div className="form-grid compact-form">
             {isAdmin && (
@@ -283,6 +326,17 @@ export function Requests() {
                 <div><strong>{selectedEmployee?.name || 'Ficha laboral pendiente'}</strong><small>{selectedEmployee?.position || user.email}</small></div>
               </div>
             )}
+            <div className={`field-wide request-routing-card${selectedEmployee?.supervisorId ? ' routed' : ''}`}>
+              <span><Icon name={selectedEmployee?.supervisorId ? 'users' : 'shield'} size={18} /></span>
+              <div>
+                <small>Primera revisión</small>
+                <strong>{selectedEmployee?.supervisor || (selectedEmployee ? 'Administración RRHH' : 'Selecciona un colaborador')}</strong>
+                <p>{selectedEmployee?.supervisorId
+                  ? 'El supervisor revisará primero; luego pasará a administración.'
+                  : 'Sin supervisor asignado: la solicitud llegará directamente a administración.'}</p>
+              </div>
+              <em>{selectedEmployee?.supervisorId ? '2 etapas' : 'Ruta directa'}</em>
+            </div>
             <label className="field">
               <span>Tipo</span>
               <select value={form.type} onChange={(event) => setForm((current) => ({ ...current, type: event.target.value }))}>
@@ -343,15 +397,16 @@ export function Requests() {
             <label className="field field-wide"><span>Detalle</span><textarea rows="3" value={form.detail} maxLength="360" placeholder={selectedRequestType.guidance} onChange={(event) => setForm((current) => ({ ...current, detail: event.target.value }))} /></label>
           </div>
           {message && <p className={`form-message ${messageTone}`}>{message}</p>}
-          <div className="modal-actions">
-            <button className="primary-button" type="submit" disabled={saving}>{saving ? 'Enviando...' : 'Enviar solicitud'}</button>
+          <div className="request-submit-bar">
+            <span><Icon name="shield" size={15} /> Quedará registrada toda la ruta de aprobación.</span>
+            <button className="primary-button" type="submit" disabled={saving}>{saving ? 'Enviando...' : 'Enviar solicitud'} <Icon name="arrow" size={15} /></button>
           </div>
         </form>
 
         <section className="panel request-list-panel">
           <div className="panel-heading attendance-records-heading">
             <div>
-              <h2>Bandeja de solicitudes</h2>
+              <h2>{!isAdmin && viewMode === 'team' ? 'Solicitudes de mi equipo' : isAdmin ? 'Bandeja administrativa' : 'Mis solicitudes enviadas'}</h2>
               <p>{visible.length} registros visibles</p>
             </div>
             <div className="filter-tabs">
@@ -361,8 +416,14 @@ export function Requests() {
             </div>
           </div>
           <div className="request-list">
-            {visible.map((item) => (
-              <article className="request-card" key={item.id}>
+            {visible.map((item) => {
+              const waitingSupervisor = item.supervisorStatus === 'Pendiente';
+              const canSupervisorReview = !isAdmin
+                && viewMode === 'team'
+                && item.status === 'Pendiente'
+                && waitingSupervisor;
+              return (
+              <article className={`request-card${canSupervisorReview ? ' supervisor-review' : ''}`} key={item.id}>
                 <span className={`request-state request-${slug(item.status)}`}>{item.status}</span>
                 <div>
                   <strong>{item.type}</strong>
@@ -374,6 +435,7 @@ export function Requests() {
                       employee={employees.find((employee) => employee.id === item.employeeId)}
                     />
                   )}
+                  <RequestApprovalPath request={item} />
                   <div className="request-history">
                     <span>Creada {formatTimestamp(item.createdAt)}</span>
                     {item.status === 'Pendiente' && (
@@ -391,12 +453,21 @@ export function Requests() {
                 {isAdmin && item.status === 'Pendiente' && (
                   <div className="request-actions">
                     {whatsappConfigured() && <button type="button" onClick={() => notifyRequest(item)} title="Notificar por WhatsApp Empresa"><Icon name="bell" size={16} /></button>}
-                    <button type="button" onClick={() => openResolution(item, 'Aprobada')} title="Aprobar"><Icon name="check" size={16} /></button>
+                    {waitingSupervisor
+                      ? <span className="request-waiting-chip">Espera supervisor</span>
+                      : <button type="button" onClick={() => openResolution(item, 'Aprobada')} title="Aprobar"><Icon name="check" size={16} /></button>}
                     <button type="button" onClick={() => openResolution(item, 'Rechazada')} title="Rechazar"><Icon name="close" size={16} /></button>
                   </div>
                 )}
+                {canSupervisorReview && (
+                  <div className="request-actions supervisor-actions">
+                    <button type="button" onClick={() => openResolution(item, 'Aprobada', 'supervisor')} title="Dar visto bueno"><Icon name="check" size={16} /></button>
+                    <button type="button" onClick={() => openResolution(item, 'Rechazada', 'supervisor')} title="Rechazar"><Icon name="close" size={16} /></button>
+                  </div>
+                )}
               </article>
-            ))}
+              );
+            })}
             {!visible.length && <div className="empty-state large"><Icon name="calendar" size={30} /><p>No hay solicitudes para este filtro.</p></div>}
           </div>
         </section>
@@ -408,7 +479,9 @@ export function Requests() {
             <div className="modal-header">
               <div>
                 <p className="eyebrow">{resolution.request.employeeName}</p>
-                <h2>{resolution.status === 'Aprobada' ? 'Aprobar solicitud' : 'Rechazar solicitud'}</h2>
+                <h2>{resolution.stage === 'supervisor'
+                  ? resolution.status === 'Aprobada' ? 'Dar visto bueno' : 'Rechazar como supervisor'
+                  : resolution.status === 'Aprobada' ? 'Aprobar solicitud' : 'Rechazar solicitud'}</h2>
               </div>
               <button className="icon-button" type="button" onClick={() => setResolution(null)}><Icon name="close" /></button>
             </div>
@@ -425,10 +498,16 @@ export function Requests() {
             </div>
             <div className="form-grid">
               <label className="field field-wide">
-                <span>Comentario de resolucion</span>
-                <textarea rows="3" maxLength="360" value={resolutionComment} onChange={(event) => setResolutionComment(event.target.value)} placeholder="Ej: aprobado por disponibilidad operacional" />
+                <span>{resolution.stage === 'supervisor' ? 'Comentario para el colaborador y administración' : 'Comentario de resolución'}</span>
+                <textarea
+                  rows="3"
+                  maxLength="360"
+                  value={resolutionComment}
+                  onChange={(event) => setResolutionComment(event.target.value)}
+                  placeholder={resolution.stage === 'supervisor' ? 'Ej: visto bueno, cobertura coordinada con el equipo' : 'Ej: aprobado por disponibilidad operacional'}
+                />
               </label>
-              {resolution.request.type !== 'Actualización de datos' && (
+              {resolution.stage !== 'supervisor' && resolution.request.type !== 'Actualización de datos' && (
                 <label className="upload-zone field-wide" onClick={() => fileInput.current?.click()}>
                   <input ref={fileInput} type="file" hidden onChange={(event) => setResolutionFile(event.target.files?.[0] || null)} />
                   <Icon name="upload" size={24} />
@@ -439,7 +518,9 @@ export function Requests() {
             </div>
             <div className="modal-actions">
               <button className="secondary-button" type="button" onClick={() => setResolution(null)}>Cancelar</button>
-              <button className="primary-button" type="submit" disabled={resolving}>{resolving ? 'Guardando...' : resolution.status}</button>
+              <button className="primary-button" type="submit" disabled={resolving}>
+                {resolving ? 'Guardando...' : resolution.stage === 'supervisor' && resolution.status === 'Aprobada' ? 'Visar y enviar a administración' : resolution.status}
+              </button>
             </div>
           </form>
         </div>
@@ -452,6 +533,31 @@ function formatDate(value) { return value ? new Intl.DateTimeFormat('es-CL', { d
 function formatTimestamp(value) { return value ? new Intl.DateTimeFormat('es-CL', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(value)) : ''; }
 function formatBytes(bytes = 0) { if (!bytes) return '0 KB'; const units = ['B', 'KB', 'MB', 'GB']; const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1); return `${(bytes / 1024 ** index).toFixed(index ? 1 : 0)} ${units[index]}`; }
 function slug(value = '') { return value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '-'); }
+
+function RequestApprovalPath({ request }) {
+  const hasSupervisor = request.supervisorStatus && request.supervisorStatus !== 'No aplica';
+  const finalStatus = request.status === 'Pendiente'
+    ? request.supervisorStatus === 'Pendiente' ? 'En espera' : 'Pendiente'
+    : request.status;
+  return (
+    <div className="request-approval-path">
+      {hasSupervisor && (
+        <>
+          <span className={`approval-step ${slug(request.supervisorStatus)}`}>
+            <i><Icon name={request.supervisorStatus === 'Aprobada' ? 'check' : request.supervisorStatus === 'Rechazada' ? 'close' : 'clock'} size={12} /></i>
+            <span><small>Supervisor</small><strong>{request.supervisorName || 'Asignado'} · {request.supervisorStatus}</strong></span>
+          </span>
+          <Icon name="arrow" size={13} />
+        </>
+      )}
+      <span className={`approval-step ${slug(finalStatus)}`}>
+        <i><Icon name={request.status === 'Aprobada' ? 'check' : request.status === 'Rechazada' ? 'close' : 'shield'} size={12} /></i>
+        <span><small>Administración</small><strong>{finalStatus}</strong></span>
+      </span>
+      {request.supervisorComment && <p><strong>Comentario del supervisor:</strong> {request.supervisorComment}</p>}
+    </div>
+  );
+}
 
 function DataUpdatePreview({ changes = {}, employee }) {
   const fields = [

@@ -13,6 +13,7 @@ const emptyForm = {
   position: '',
   area: '',
   isSupervisor: false,
+  supervisorId: '',
   supervisor: '',
   supervisorWhatsapp: '',
   workLocation: '',
@@ -47,6 +48,7 @@ const optionalEmployeeColumns = {
   schedule_end: 'scheduleEnd',
   weekly_hours: 'weeklyHours',
   is_supervisor: 'isSupervisor',
+  supervisor_id: 'supervisorId',
   supervisor: 'supervisor',
   supervisor_whatsapp: 'supervisorWhatsapp',
   emergency_contact: 'emergencyContact',
@@ -135,8 +137,12 @@ export function Employees() {
       setMessage('Nombre y correo son obligatorios.');
       return;
     }
-    if (!form.isSupervisor && (!form.supervisor.trim() || !form.supervisorWhatsapp.trim())) {
-      setMessage('Si el colaborador no es supervisor, debes asignar su supervisor y WhatsApp para gestionar solicitudes.');
+    if (!form.isSupervisor && !form.supervisorId) {
+      setMessage('Selecciona el supervisor directo desde la lista para enrutar correctamente sus solicitudes.');
+      return;
+    }
+    if (form.supervisor.trim() && !form.supervisorId) {
+      setMessage('El supervisor debe elegirse desde colaboradores existentes, no escribirse manualmente.');
       return;
     }
 
@@ -383,7 +389,12 @@ export function Employees() {
                   <small>Aparecera como opcion para asignar solicitudes, WhatsApp y seguimiento de su equipo.</small>
                 </span>
               </label>
-              <SupervisorField value={form.supervisor} setForm={updateForm} options={supervisorOptions} />
+              <SupervisorField
+                value={form.supervisor}
+                supervisorId={form.supervisorId}
+                setForm={updateForm}
+                options={supervisorOptions}
+              />
               <Field label="WhatsApp supervisor" name="supervisorWhatsapp" value={form.supervisorWhatsapp} setForm={updateForm} />
               <Field label="Sede / ubicacion" name="workLocation" value={form.workLocation} setForm={updateForm} />
               <SelectField label="Tipo de contrato" name="contractType" value={form.contractType} setForm={updateForm} options={contractOptions} />
@@ -427,7 +438,7 @@ async function saveEmployeeWithSchemaFallback(payload, employeeId) {
   const missingColumns = [];
   let currentPayload = { ...payload };
 
-  for (let attempt = 0; attempt < 8; attempt += 1) {
+  for (let attempt = 0; attempt < 10; attempt += 1) {
     try {
       if (employeeId === 'new') {
         await insertRow('employees', currentPayload);
@@ -519,11 +530,12 @@ function PositionField({ value, setForm }) {
   );
 }
 
-function SupervisorField({ value, setForm, options }) {
+function SupervisorField({ value, supervisorId, setForm, options }) {
   function applySupervisor(nextName) {
     const supervisor = options.find((item) => item.name === nextName);
     setForm((current) => ({
       ...current,
+      supervisorId: supervisor?.id || '',
       supervisor: nextName,
       supervisorWhatsapp: supervisor?.phone || current.supervisorWhatsapp,
     }));
@@ -533,7 +545,7 @@ function SupervisorField({ value, setForm, options }) {
     <div className="field supervisor-field">
       <span>Supervisor</span>
       {options.length > 0 && (
-        <select value={options.some((item) => item.name === value) ? value : ''} onChange={(event) => applySupervisor(event.target.value)}>
+        <select value={options.some((item) => item.id === supervisorId) ? value : ''} onChange={(event) => applySupervisor(event.target.value)}>
           <option value="">Elegir desde colaboradores</option>
           {options.map((item) => (
             <option key={`${item.id}-${item.name}`} value={item.name}>

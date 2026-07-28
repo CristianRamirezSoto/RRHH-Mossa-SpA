@@ -14,6 +14,7 @@ const tableMap = {
     scheduleEnd: 'schedule_end',
     weeklyHours: 'weekly_hours',
     isSupervisor: 'is_supervisor',
+    supervisorId: 'supervisor_id',
     supervisor: 'supervisor',
     supervisorWhatsapp: 'supervisor_whatsapp',
     emergencyContact: 'emergency_contact',
@@ -73,6 +74,12 @@ const tableMap = {
     evidenceContentType: 'evidence_content_type',
     evidenceSize: 'evidence_size',
     requestedChanges: 'requested_changes',
+    supervisorId: 'supervisor_id',
+    supervisorName: 'supervisor_name',
+    supervisorStatus: 'supervisor_status',
+    supervisorComment: 'supervisor_comment',
+    supervisorReviewedAt: 'supervisor_reviewed_at',
+    supervisorReviewedBy: 'supervisor_reviewed_by',
     createdBy: 'created_by',
     reviewedBy: 'reviewed_by',
     createdAt: 'created_at',
@@ -231,6 +238,17 @@ export async function resolveEmployeeDataUpdate(requestId, { status, comment = '
   const { data, error } = await supabase.rpc('resolve_employee_data_update', {
     p_request_id: requestId,
     p_status: status,
+    p_comment: String(comment || '').slice(0, 360),
+  });
+  if (error) throw error;
+  return fromDb('hrRequests', data);
+}
+
+export async function reviewTeamRequest(requestId, { decision, comment = '' }) {
+  ensureSupabase();
+  const { data, error } = await supabase.rpc('review_team_request', {
+    p_request_id: requestId,
+    p_decision: decision,
     p_comment: String(comment || '').slice(0, 360),
   });
   if (error) throw error;

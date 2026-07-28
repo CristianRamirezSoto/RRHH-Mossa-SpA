@@ -17,15 +17,18 @@ export function buildAdminTasks({
     .filter((item) => item.status === 'Pendiente')
     .forEach((request) => {
       const age = elapsedDays(request.createdAt, now);
+      const waitingSupervisor = request.supervisorStatus === 'Pendiente';
       tasks.push({
         id: `request-${request.id}`,
         category: 'Solicitudes',
         icon: 'calendar',
-        priority: age >= 3 ? 'critical' : 'high',
+        priority: waitingSupervisor ? 'medium' : age >= 3 ? 'critical' : 'high',
         title: `${request.type} de ${request.employeeName}`,
         detail: requestDetail(request),
-        reason: age ? `Espera hace ${age} día${age === 1 ? '' : 's'}` : 'Recibida hoy',
-        action: 'Resolver',
+        reason: waitingSupervisor
+          ? `Espera visto bueno de ${request.supervisorName || 'supervisor'}`
+          : age ? `Espera hace ${age} día${age === 1 ? '' : 's'}` : 'Recibida hoy',
+        action: waitingSupervisor ? 'Ver seguimiento' : 'Resolver',
         to: '/solicitudes',
         timestamp: timestampValue(request.createdAt),
       });

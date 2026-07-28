@@ -34,6 +34,7 @@ create table if not exists public.employees (
   schedule_end text default '18:00',
   weekly_hours numeric not null default 44,
   is_supervisor boolean not null default false,
+  supervisor_id uuid references public.employees(id) on delete set null,
   supervisor text default '',
   supervisor_whatsapp text default '',
   emergency_contact text default '',
@@ -58,6 +59,7 @@ alter table public.employees add column if not exists work_location text default
 alter table public.employees add column if not exists schedule_end text default '18:00';
 alter table public.employees add column if not exists weekly_hours numeric not null default 44;
 alter table public.employees add column if not exists is_supervisor boolean not null default false;
+alter table public.employees add column if not exists supervisor_id uuid references public.employees(id) on delete set null;
 alter table public.employees add column if not exists supervisor text default '';
 alter table public.employees add column if not exists supervisor_whatsapp text default '';
 alter table public.employees add column if not exists emergency_contact text default '';
@@ -146,6 +148,12 @@ create table if not exists public.hr_requests (
   evidence_content_type text default '',
   evidence_size bigint not null default 0,
   requested_changes jsonb not null default '{}'::jsonb,
+  supervisor_id uuid references public.employees(id) on delete set null,
+  supervisor_name text default '',
+  supervisor_status text not null default 'No aplica' check (supervisor_status in ('No aplica', 'Pendiente', 'Aprobada', 'Rechazada')),
+  supervisor_comment text default '',
+  supervisor_reviewed_at timestamptz,
+  supervisor_reviewed_by uuid references auth.users(id) on delete set null,
   created_by uuid references auth.users(id) on delete set null,
   reviewed_by uuid references auth.users(id) on delete set null,
   created_at timestamptz not null default now(),
@@ -159,6 +167,12 @@ alter table public.hr_requests add column if not exists evidence_storage_path te
 alter table public.hr_requests add column if not exists evidence_content_type text default '';
 alter table public.hr_requests add column if not exists evidence_size bigint not null default 0;
 alter table public.hr_requests add column if not exists requested_changes jsonb not null default '{}'::jsonb;
+alter table public.hr_requests add column if not exists supervisor_id uuid references public.employees(id) on delete set null;
+alter table public.hr_requests add column if not exists supervisor_name text default '';
+alter table public.hr_requests add column if not exists supervisor_status text not null default 'No aplica';
+alter table public.hr_requests add column if not exists supervisor_comment text default '';
+alter table public.hr_requests add column if not exists supervisor_reviewed_at timestamptz;
+alter table public.hr_requests add column if not exists supervisor_reviewed_by uuid references auth.users(id) on delete set null;
 
 create table if not exists public.payroll (
   id text primary key,
@@ -337,6 +351,20 @@ drop policy if exists "requests_own_select_insert" on public.hr_requests;
 create policy "requests_own_select_insert" on public.hr_requests
 for select to authenticated
 using (lower(owner_email) = lower((select email from auth.users where id = auth.uid())));
+
+drop policy if exists "requests_supervisor_read_team" on public.hr_requests;
+create policy "requests_supervisor_read_team" on public.hr_requests
+for select to authenticated
+using (
+  supervisor_id is not null
+  and exists (
+    select 1
+    from public.employees reviewer
+    where reviewer.id = hr_requests.supervisor_id
+      and lower(reviewer.email) = lower((select email from auth.users where id = auth.uid()))
+      and reviewer.status <> 'Inactivo'
+  )
+);
 
 drop policy if exists "requests_insert_own" on public.hr_requests;
 create policy "requests_insert_own" on public.hr_requests
