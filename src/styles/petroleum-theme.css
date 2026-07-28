@@ -1,0 +1,542 @@
+:root {
+  --forest: #0b3441;
+  --green: #17677a;
+  --green-light: #e2f1f4;
+  --ink: #17313b;
+  --muted: #6b7d85;
+  --line: #dbe6ea;
+  --surface: #ffffff;
+  --shadow: 0 16px 45px rgba(12, 52, 65, .075);
+  --portal-navy: #0b3441;
+  --portal-green: #17677a;
+  --portal-mint: #e2f1f4;
+  --portal-blue: #2b7187;
+  --portal-surface: rgba(255, 255, 255, .94);
+  --portal-border: #dbe7eb;
+  --portal-shadow: 0 18px 60px rgba(10, 48, 61, .09);
+  --petroleum-950: #061f29;
+  --petroleum-900: #0a2c38;
+  --petroleum-850: #0b3441;
+  --petroleum-800: #0e4050;
+  --petroleum-700: #13596b;
+  --petroleum-600: #176f82;
+  --petroleum-500: #2a8799;
+  --petroleum-300: #8fc9d4;
+  --petroleum-100: #dff0f3;
+  --petroleum-50: #f2f8f9;
+}
+
+body {
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 78% 0, rgba(90, 164, 181, .14), transparent 32rem),
+    #f2f6f8;
+}
+
+/* Identidad y navegación */
+.app-shell .sidebar {
+  background:
+    radial-gradient(circle at 18% 0, rgba(93, 174, 192, .16), transparent 18rem),
+    linear-gradient(180deg, var(--petroleum-900), var(--petroleum-950));
+  box-shadow: 14px 0 45px rgba(6, 31, 41, .14);
+}
+
+.app-shell .brand {
+  min-height: 58px;
+  gap: 11px;
+}
+
+.app-shell .brand-logo {
+  width: 58px;
+  height: 52px;
+  flex: 0 0 58px;
+  padding: 3px;
+  border: 1px solid rgba(255, 255, 255, .18);
+  border-radius: 13px;
+  object-fit: contain;
+  background: #fff;
+  box-shadow: 0 9px 22px rgba(0, 0, 0, .18);
+}
+
+.app-shell .brand-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-shell .brand strong {
+  color: #fff;
+  letter-spacing: -.02em;
+}
+
+.app-shell .brand small {
+  color: #91b3bf;
+}
+
+.app-shell .workspace-badge {
+  border-color: rgba(126, 201, 216, .17);
+  color: #e7f5f8;
+  background: rgba(255, 255, 255, .055);
+}
+
+.app-shell .workspace-badge > span {
+  color: #91d0dd;
+  background: rgba(89, 172, 191, .15);
+}
+
+.app-shell .workspace-badge small,
+.app-shell .sidebar-label,
+.app-shell .sidebar-user-copy small {
+  color: #769aa7;
+}
+
+.app-shell .nav-item {
+  color: #aec3ca;
+}
+
+.app-shell .nav-item svg {
+  color: #7fa2ad;
+}
+
+.app-shell .nav-item:hover svg,
+.app-shell .nav-item.active svg {
+  color: #a6dce6;
+}
+
+.app-shell .nav-item.active {
+  border-color: rgba(111, 191, 207, .15);
+  color: #f7fdff;
+  background: linear-gradient(90deg, rgba(72, 157, 178, .23), rgba(72, 157, 178, .07));
+  box-shadow: inset 3px 0 #62b6c8, 0 8px 22px rgba(0, 0, 0, .1);
+}
+
+.app-shell .sidebar-footer {
+  background: linear-gradient(180deg, rgba(6, 31, 41, 0), var(--petroleum-950) 18%);
+}
+
+.app-shell .avatar,
+.app-shell .avatar-soft {
+  color: #0a3c49;
+  background: #a2d5df;
+}
+
+/* Encabezados, tarjetas y controles compartidos */
+.app-shell :is(
+  .page-header h1,
+  .attendance-page-header h1,
+  .employee-file-person h1,
+  .file-readiness-card h2,
+  .modal-header h2,
+  .account-header h1
+) {
+  color: #103744;
+}
+
+.app-shell :is(.eyebrow, .portal-kicker, .attendance-mode-eyebrow) {
+  color: #247589;
+}
+
+.app-shell :is(
+  .panel,
+  .portal-panel,
+  .portal-metric-card,
+  .quick-action-card,
+  .directory-card,
+  .worker-payment-card,
+  .stat-card,
+  .notification-stat,
+  .notification-card,
+  .attendance-mode-card,
+  .attendance-summary-card,
+  .workflow-notice,
+  .request-card,
+  .payroll-toolbar-panel,
+  .payroll-alert-strip,
+  .payroll-filters-panel,
+  .payroll-card,
+  .file-summary-card,
+  .document-card,
+  .document-check-item,
+  .employee-file-data,
+  .account-directory-panel,
+  .account-side-card,
+  .account-metric
+) {
+  border-color: #dbe7eb;
+  box-shadow: 0 10px 34px rgba(10, 49, 62, .055);
+}
+
+.app-shell :is(
+  .primary-button,
+  .portal-primary-action,
+  .document-action-download,
+  .attendance-mode-toggle button.active,
+  .attendance-view-toggle button.active,
+  .payroll-actions .payroll-pay-button,
+  .account-primary-button,
+  .account-modal-actions .primary
+) {
+  border-color: var(--petroleum-700);
+  color: #fff;
+  background: linear-gradient(135deg, var(--petroleum-800), var(--petroleum-600));
+  box-shadow: 0 10px 24px rgba(13, 74, 91, .22);
+}
+
+.app-shell .primary-button:hover,
+.app-shell .portal-primary-action:hover {
+  background: linear-gradient(135deg, var(--petroleum-900), var(--petroleum-700));
+}
+
+.app-shell :is(
+  .secondary-button,
+  .portal-secondary-action,
+  .open-file-button,
+  .notification-action,
+  .request-history button,
+  .payroll-actions button,
+  .payroll-receipt button,
+  .account-manage-button
+) {
+  border-color: #c8dce2;
+  color: #225b6b;
+  background: #f3f8fa;
+}
+
+.app-shell :is(
+  .field input,
+  .field textarea,
+  .field select,
+  .compact-select select,
+  .attendance-records-filters input,
+  .attendance-records-filters select,
+  .money-input,
+  .payroll-payment-panel input,
+  .payroll-filter-field select,
+  .account-form-grid input,
+  .account-toolbar select
+) {
+  border-color: #d5e3e8;
+  color: #213f4a;
+  background: #fbfdfe;
+}
+
+.app-shell :is(
+  .field input,
+  .field textarea,
+  .field select,
+  .account-form-grid input
+):focus {
+  border-color: #3b8da0;
+  box-shadow: 0 0 0 3px rgba(42, 135, 153, .12);
+}
+
+.app-shell :is(.filter-tabs, .attendance-mode-toggle, .attendance-view-toggle, .payroll-status-filter) {
+  border-color: #d9e6ea;
+  background: #eaf1f3;
+}
+
+.app-shell :is(
+  .filter-tabs button.active,
+  .category-tabs button.active,
+  .file-categories button.active,
+  .payroll-status-filter button.active
+) {
+  border-color: #b9d7df;
+  color: #174f60;
+  background: #fff;
+}
+
+/* Portales de administrador y colaboradores */
+.app-shell :is(.employee-welcome, .admin-hero) {
+  color: #ebf8fb;
+  background:
+    radial-gradient(circle at 86% 20%, rgba(133, 211, 225, .24), transparent 16rem),
+    linear-gradient(125deg, #0b3441 0%, #105266 58%, #176e80 100%);
+  box-shadow: 0 25px 65px rgba(9, 58, 72, .2);
+}
+
+.app-shell :is(.employee-welcome, .admin-hero) .portal-kicker,
+.app-shell .latest-payment-card .portal-kicker {
+  color: #9dd8e3;
+}
+
+.app-shell :is(.employee-welcome, .admin-hero) p {
+  color: #bfd6dd;
+}
+
+.app-shell .portal-primary-action {
+  color: #123e4b;
+  background: #a9dce5;
+}
+
+.app-shell .portal-secondary-action {
+  border-color: rgba(255, 255, 255, .18);
+  color: #edf9fb;
+  background: rgba(255, 255, 255, .08);
+}
+
+.app-shell .employee-role-avatar,
+.app-shell .directory-avatar,
+.app-shell .account-avatar {
+  color: #164b5a;
+  background: linear-gradient(145deg, #dff1f4, #b9dde5);
+}
+
+.app-shell :is(
+  .portal-tone-green .portal-metric-icon,
+  .portal-activity-icon.tone-green,
+  .tone-green,
+  .notification-stat > span,
+  .file-summary-card > span,
+  .document-type,
+  .document-check-number,
+  .enrollment-step,
+  .account-metric.green > span
+) {
+  color: #17677a;
+  background: #e0f0f3;
+}
+
+.app-shell :is(
+  .status-activo,
+  .mini-badge.ready,
+  .expiry-ok,
+  .document-check-state,
+  .notification-icon.success,
+  .request-aprobada,
+  .attendance-state-pill,
+  .enrollment-badge.ready,
+  .payroll-risk.ok,
+  .payroll-listo-para-pago,
+  .payroll-checklist span.ready,
+  .account-feedback.success,
+  .account-role-badge.employee
+) {
+  color: #17677a;
+  background: #e2f1f4;
+}
+
+.app-shell :is(.portal-progress i, .completion-track span) {
+  background: linear-gradient(90deg, #3d95a7, #17677a);
+}
+
+.app-shell .file-readiness-ring {
+  background: conic-gradient(#17677a var(--progress), #e4ecef 0);
+}
+
+.app-shell :is(
+  .quick-action-card > span,
+  .directory-count,
+  .directory-contact,
+  .worker-payment-icon,
+  .portal-support-icon
+) {
+  color: #17677a;
+  background: #e3f1f4;
+}
+
+.app-shell :is(.portal-support-card, .latest-payment-card) {
+  color: #eaf8fb;
+  background:
+    radial-gradient(circle at 90% 0, rgba(112, 196, 213, .18), transparent 16rem),
+    linear-gradient(125deg, #0b3441, #155c6d);
+}
+
+.app-shell :is(.portal-support-card, .latest-payment-card) p {
+  color: #b1ced6;
+}
+
+.app-shell .admin-insight-banner {
+  border-color: #c9e0e5;
+  background: linear-gradient(110deg, #edf7f9, #fbfdfe);
+}
+
+.app-shell .admin-insight-banner > span,
+.app-shell .request-owner-card > span {
+  color: #17677a;
+  background: #dceff3;
+}
+
+/* Expedientes, formularios y actividad */
+.app-shell :is(
+  .profile-consumption-card,
+  .role-logic-card,
+  .consent-field,
+  .upload-zone,
+  .push-status,
+  .whatsapp-test-card.ready,
+  .request-resolution-summary,
+  .payroll-net-box,
+  .payroll-close-panel
+) {
+  border-color: #d4e5e9;
+  color: #295766;
+  background: #f3f9fa;
+}
+
+.app-shell .upload-zone:hover {
+  border-color: #6aa6b4;
+  background: #edf6f8;
+}
+
+.app-shell :is(
+  .document-category,
+  .form-message,
+  .file-compliance-card strong,
+  .worker-ok,
+  .live-indicator,
+  .enrollment-checks > div.ready
+) {
+  color: #237286;
+}
+
+.app-shell :is(
+  .notification-filter-panel button.active,
+  .notification-card.unread,
+  .recognition-detected,
+  .recognition-verifying,
+  .recognition-confirmed,
+  .recognition-registered,
+  .workflow-notice.ready
+) {
+  border-color: #c7e0e6;
+  color: #174f60;
+  background: #f1f8fa;
+}
+
+.app-shell :is(
+  .notification-filter-panel button.active strong,
+  .unread-dot,
+  .live-indicator i
+) {
+  color: #fff;
+  background: #238094;
+}
+
+.app-shell .notification-card.unread {
+  box-shadow: inset 3px 0 #368fa1, 0 8px 26px rgba(10, 49, 62, .045);
+}
+
+.app-shell :is(
+  .recognition-detected .recognition-status-icon,
+  .recognition-verifying .recognition-status-icon,
+  .recognition-confirmed .recognition-status-icon,
+  .recognition-registered .recognition-status-icon,
+  .workflow-notice.ready .workflow-notice-icon
+) {
+  color: #17677a;
+  background: #dceff3;
+}
+
+.app-shell .recognition-loader {
+  border-color: #c9dfe4;
+  border-top-color: #2c8799;
+}
+
+.app-shell .payroll-pagado {
+  color: #fff;
+  background: #17677a;
+}
+
+/* Gestión de cuentas */
+.app-shell .account-security-note {
+  border-color: #c8e0e6;
+  color: #184f5f;
+  background: linear-gradient(110deg, #edf7f9, #fbfdfe);
+}
+
+.app-shell .account-security-note > span,
+.app-shell .account-security-note small,
+.app-shell .credential-icon {
+  color: #17677a;
+  background: #dceff3;
+}
+
+.app-shell :is(
+  .account-panel-heading h2,
+  .account-metric strong,
+  .account-person strong,
+  .role-matrix-title strong,
+  .credential-card h2,
+  .account-role-options strong,
+  .manage-account-summary h3
+) {
+  color: #173c48;
+}
+
+.app-shell .account-search {
+  border-color: #d5e4e8;
+  color: #71858d;
+  background: #fbfdfe;
+}
+
+.app-shell .account-table th {
+  color: #748990;
+  background: #f2f7f8;
+}
+
+.app-shell .account-table td {
+  border-color: #e7eef0;
+  color: #526a73;
+}
+
+.app-shell .account-table tbody tr:hover {
+  background: #f5fafb;
+}
+
+.app-shell .account-role-badge.employee,
+.app-shell .account-status-badge.active {
+  color: #17677a;
+}
+
+.app-shell :is(
+  .role-matrix-title > span,
+  .account-audit-list article > span,
+  .credential-icon,
+  .account-empty > span
+) {
+  color: #17677a;
+  background: #e0f0f3;
+}
+
+.app-shell .credential-card {
+  border-color: #c9e0e5;
+  background: linear-gradient(120deg, #eef8f9, #fff);
+}
+
+.app-shell .credential-actions > button:first-child,
+.app-shell .account-modal-actions .primary {
+  color: #fff;
+  background: #17677a;
+}
+
+.app-shell .account-mode-picker button.active,
+.app-shell .account-role-options > label.selected {
+  border-color: #63a6b5;
+  color: #164f5f;
+  background: #edf7f9;
+}
+
+.app-shell .account-role-options > label > input {
+  accent-color: #17677a;
+}
+
+.app-shell .account-secondary-actions > button.reactivate {
+  border-color: #c8e0e6;
+  color: #17677a;
+  background: #f2f9fa;
+}
+
+@media (max-width: 760px) {
+  .app-shell .nav-item.active {
+    box-shadow: inset 0 3px #62b6c8;
+  }
+
+  .app-shell .sidebar-nav {
+    scrollbar-width: none;
+  }
+
+  .app-shell .sidebar-nav::-webkit-scrollbar {
+    display: none;
+  }
+}

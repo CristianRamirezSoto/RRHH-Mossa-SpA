@@ -35,14 +35,6 @@ body {
   padding: 0 9px;
 }
 
-.brand-mark {
-  width: 43px;
-  height: 43px;
-  border-radius: 14px;
-  background: linear-gradient(145deg, #99dfc0, #64bd97);
-  box-shadow: 0 8px 20px rgba(74, 169, 129, .18);
-}
-
 .brand strong {
   letter-spacing: -.025em;
 }

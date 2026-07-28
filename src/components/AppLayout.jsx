@@ -31,9 +31,13 @@ export function AppLayout() {
     <div className={`app-shell ${isAdmin ? 'admin-workspace' : 'employee-workspace'}`}>
       <aside className="sidebar">
         <div className="brand">
-          <span className="brand-mark">M</span>
-          <span>
-            <strong>Mossa</strong>
+          <img
+            className="brand-logo"
+            src="/images/mossa-logo.png"
+            alt="Construcción Mossa SpA"
+          />
+          <span className="brand-copy">
+            <strong>Mossa SpA</strong>
             <small>{isAdmin ? 'Administración de personas' : 'Portal de colaboradores'}</small>
           </span>
         </div>

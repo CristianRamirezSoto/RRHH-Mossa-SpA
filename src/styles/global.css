@@ -25,7 +25,6 @@ h1, h2, h3, .brand { font-family: 'Manrope', sans-serif; }
 .app-shell { min-height: 100vh; display: grid; grid-template-columns: 250px minmax(0, 1fr); }
 .sidebar { position: sticky; top: 0; height: 100vh; padding: 28px 20px 20px; background: #102a23; color: #fff; display: flex; flex-direction: column; }
 .brand { display: flex; align-items: center; gap: 12px; padding: 0 10px; }
-.brand-mark { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; color: #12372c; background: #87d3b2; font-weight: 800; }
 .brand span:last-child { display: flex; flex-direction: column; }
 .brand strong { font-size: 1rem; }
 .brand small { margin-top: 2px; color: #8da79e; font: 500 .7rem 'DM Sans'; }
